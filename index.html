@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DMS Export-Import</title>
+<title>EXIM WKB</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -632,11 +632,12 @@ function App(){
     ]));
     const csv=rows.map(r=>r.map(c=>'"'+(c+"").replace(/"/g,'""')+'"').join(",")).join("\n");
     const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="DMS_Export_"+new Date().toISOString().slice(0,10)+".csv"; a.click();
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="WKB_Export_"+new Date().toISOString().slice(0,10)+".csv"; a.click();
     toast("CSV berhasil diexport ("+docs.length+" dokumen)");
   }
 
-  const closingSoon=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=30&&r>0; });
+  const closingSoon=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=2&&r>0; });
+  const etaSoon=docs.filter(d=>{ if(!d.tanggal_eta) return false; const r=daysUntil(d.tanggal_eta); return r!==null&&r<=10&&r>=0; });
   const closedDocs=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=0; });
   // derive all unique invoices for autocomplete/grouping
   const allInvoices=[...new Set(docs.map(d=>d.no_invoice).filter(Boolean))].sort();
@@ -653,9 +654,9 @@ function App(){
     <div className="login-screen">
       <div className="login-bg"/>
       <div className="login-card">
-        <div className="login-logo-big">DMS</div>
-        <div className="login-logo-sub">Export · Import · Divisi Logistik</div>
-        <p className="login-desc">Sistem manajemen dokumen terpusat. Semua file tersimpan di Google Drive & database bersama yang dapat diakses seluruh tim.</p>
+        <div className="login-logo-big">WKB</div>
+        <div className="login-logo-sub">Export · Import </div>
+        <p className="login-desc">Sistem manajemen dokumen EXIM WKB</p>
         <button className="google-btn" onClick={handleGoogleLogin} disabled={!gReady}>
           <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
           {gReady?"Login dengan Google":"Memuat..."}
@@ -674,7 +675,7 @@ function App(){
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-text">DMS</div>
+          <div className="logo-text">EXIM WKB</div>
           <div className="logo-sub">Export · Import</div>
         </div>
         <nav className="sidebar-nav">
@@ -702,7 +703,7 @@ function App(){
       </aside>
 
       <main className="main">
-        {page==="dashboard"&&<DashboardPage docs={docs} closingSoon={closingSoon} closedDocs={closedDocs} loading={loading} onNav={setPage} allInvoices={allInvoices} onDrillInvoice={(inv)=>{setFilterInvoice(inv);setPage("dokumen");}}/>}
+        {page==="dashboard"&&<DashboardPage docs={docs} closingSoon={closingSoon} closedDocs={closedDocs} etaSoon={etaSoon} loading={loading} onNav={setPage} allInvoices={allInvoices} onDrillInvoice={(inv)=>{setFilterInvoice(inv);setPage("dokumen");}}/>}
         {page==="upload"&&<UploadPage pendingFiles={pendingFiles} formData={formData} setFormData={setFormData} dragging={dragging} uploading={uploading} uploadProgress={uploadProgress} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileInput={handleFileInput} onRemove={removeFile} onUpload={handleUpload} onCancel={()=>{setPendingFiles([]);setFormData({});}} fileInputRef={fileInputRef} user={user} allInvoices={allInvoices}/>}
         {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterInvoice={filterInvoice} setFilterInvoice={setFilterInvoice} allInvoices={allInvoices} closingSoon={closingSoon} closedDocs={closedDocs} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
       </main>
@@ -730,9 +731,9 @@ function App(){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────
-function DashboardPage({docs,closingSoon,closedDocs,loading,onNav,allInvoices,onDrillInvoice}){
+function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInvoices,onDrillInvoice}){
   const totalSize=docs.reduce((a,d)=>a+(parseInt(d.ukuran_file)||0),0);
-  const finals=docs.filter(d=>d.status==="Final").length;
+
   const totalInvoice=new Set(docs.map(d=>d.no_invoice).filter(Boolean)).size;
   const byType=DOC_TYPES.reduce((a,t)=>({...a,[t]:docs.filter(d=>d.tipe_dokumen===t).length}),{});
   const byUser={};
@@ -760,13 +761,14 @@ function DashboardPage({docs,closingSoon,closedDocs,loading,onNav,allInvoices,on
       </div>
       <div className="content">
         {closedDocs.length>0&&<div className="notif-banner"><span style={{fontSize:18}}>🚨</span><span><strong>{closedDocs.length} dokumen</strong> sudah closing.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
-        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginTop:closedDocs.length?-8:0}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 30 hari.</span></div>}
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginTop:closedDocs.length?-8:0}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
+        {etaSoon.length>0&&<div className="notif-banner" style={{background:"rgba(0,153,255,0.06)",borderColor:"rgba(0,153,255,0.2)",marginTop:4}}><span style={{fontSize:18}}>🕐</span><span><strong>{etaSoon.length} dokumen</strong> ETA dalam 10 hari ke depan.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
 
         <div className="stats-grid" style={{gridTemplateColumns:"repeat(5,1fr)"}}>
           <div className="stat-card accent"><div className="stat-label">Total Dokumen</div><div className="stat-value">{docs.length}</div><div className="stat-sub">Semua tipe</div></div>
           <div className="stat-card blue"><div className="stat-label">Total Invoice</div><div className="stat-value">{totalInvoice}</div><div className="stat-sub">No. unik</div></div>
-          <div className="stat-card blue"><div className="stat-label">Final</div><div className="stat-value">{finals}</div><div className="stat-sub">{docs.length?Math.round(finals/docs.length*100):0}% dari total</div></div>
-          <div className="stat-card warn"><div className="stat-label">Closing Segera</div><div className="stat-value">{closingSoon.length}</div><div className="stat-sub">Dalam 30 hari</div></div>
+          <div className="stat-card warn"><div className="stat-label">ETA ≤10 Hari</div><div className="stat-value">{etaSoon.length}</div><div className="stat-sub">Perlu diproses segera</div></div>
+          <div className="stat-card danger"><div className="stat-label">Closing Segera</div><div className="stat-value">{closingSoon.length}</div><div className="stat-sub">Dalam 2 hari</div></div>
           <div className="stat-card danger"><div className="stat-label">Total Ukuran</div><div className="stat-value">{fmtBytes(totalSize)}</div><div className="stat-sub">Di Google Drive</div></div>
         </div>
 
@@ -815,7 +817,7 @@ function DashboardPage({docs,closingSoon,closedDocs,loading,onNav,allInvoices,on
 
         {closingSoon.length>0&&(
           <>
-            <div className="section-header" style={{marginTop:28}}><div className="section-title">⚠️ Segera Closing</div></div>
+            <div className="section-header" style={{marginTop:28}}><div className="section-title">⚠️ Segera Closing <span style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)",fontWeight:400}}>≤2 hari</span></div></div>
             <div className="table-wrap"><table><thead><tr><th>Dokumen</th><th>Tipe</th><th>No Invoice</th><th>Tgl Closing</th><th>ETA</th><th>Sisa</th><th>Upload Oleh</th></tr></thead>
             <tbody>{closingSoon.map(d=>(
               <tr key={d.id}>
@@ -918,9 +920,9 @@ function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,upload
                 <div className="form-group"><label className="form-label">No. Invoice</label>
                   <InvoiceComboInput value={formData.no_invoice||""} onChange={v=>setFormData(p=>({...p,no_invoice:v}))} allInvoices={allInvoices}/></div>
                 <div className="form-group"><label className="form-label">Brand</label>
-                  <input className="form-input" value={formData.brand||""} onChange={e=>setFormData(p=>({...p,brand:e.target.value}))} placeholder="misal: ACME, PT. Maju Jaya"/></div>
+                  <input className="form-input" value={formData.brand||""} onChange={e=>setFormData(p=>({...p,brand:e.target.value}))} placeholder="misal: HANWA"/></div>
                 <div className="form-group"><label className="form-label">Destination</label>
-                  <input className="form-input" value={formData.destination||""} onChange={e=>setFormData(p=>({...p,destination:e.target.value}))} placeholder="misal: Jakarta, Surabaya, Singapore"/></div>
+                  <input className="form-input" value={formData.destination||""} onChange={e=>setFormData(p=>({...p,destination:e.target.value}))} placeholder="misal: Tokyo, Gadang"/></div>
                 <div className="form-group"><label className="form-label">Tanggal Dokumen</label>
                   <input type="date" className="form-input" value={formData.tanggal_dokumen||""} onChange={e=>setFormData(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
                 <div className="form-group"><label className="form-label">Tanggal Closing</label>
@@ -1036,7 +1038,7 @@ function InvoiceGroupedView({docs,onDetail,onDelete,onEdit,statusBadge,expBadge}
 function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterInvoice,setFilterInvoice,allInvoices,closingSoon,closedDocs,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
   const [groupByInvoice,setGroupByInvoice]=useState(false);
   function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Expired:"badge-closing",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
-  function expBadge(d){ if(!d.tanggal_closing) return null; const r=daysUntil(d.tanggal_closing); if(r===null) return null; if(r<=0) return d.status==="Expired"?null:<span className="badge badge-closing">Expired</span>; if(r<=30) return <span className="badge badge-closing-soon">{r}h</span>; return null; }
+  function expBadge(d){ if(!d.tanggal_closing) return null; const r=daysUntil(d.tanggal_closing); if(r===null) return null; if(r<=0) return d.status==="Expired"?null:<span className="badge badge-closing">Expired</span>; if(r<=2) return <span className="badge badge-closing-soon">{r}h</span>; return null; }
   return (
     <>
       <div className="header">
@@ -1049,7 +1051,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
       </div>
       <div className="content">
         {closedDocs.length>0&&<div className="notif-banner" style={{marginBottom:16}}><span style={{fontSize:18}}>🚨</span><span><strong>{closedDocs.length} dokumen</strong> sudah closing.</span></div>}
-        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 30 hari.</span></div>}
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
         <div className="toolbar">
           <div className="search-wrap"><span className="search-icon">🔍</span>
             <input className="search-input" placeholder="Cari dokumen..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
