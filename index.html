@@ -167,7 +167,7 @@ const DOC_STATUS = ["Draft","Final","Expired","Dibatalkan"];
 // ── HELPERS ─────────────────────────────────────────────────────────
 function genId(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
 function fmtBytes(b){ if(!b||b<1024) return (b||0)+"B"; if(b<1048576) return (b/1024).toFixed(1)+"KB"; return (b/1048576).toFixed(1)+"MB"; }
-function fmtDate(d){ if(!d) return "-"; return new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
+function fmtDate(d){ if(!d) return "-"; const dt=d.includes("T")?new Date(d):new Date(d+"T00:00:00"); return dt.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
 function getExt(name){ return (name||"").split(".").pop().toLowerCase(); }
 function getMime(f){ return f.type||"application/octet-stream"; }
 function daysUntil(dateStr){ if(!dateStr) return null; return Math.ceil((new Date(dateStr)-new Date())/(864e5)); }
@@ -266,7 +266,12 @@ async function sheetsUpdateRow(docId, updates){
   const rowRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}`);
   const curRow=(rowRes.values&&rowRes.values[0])||[];
   const newRow=SHEET_COLS.map((c,i)=>{
-    if(c==="tags") return (updates.tags||[]).join("|");
+    if(c==="tags"){
+      const t=updates.tags;
+      if(!t) return "";
+      if(Array.isArray(t)) return t.join("|");
+      return t.split(",").map(x=>x.trim()).filter(Boolean).join("|");
+    }
     if(c in updates) return updates[c]!==null&&updates[c]!==undefined?String(updates[c]):"";
     return curRow[i]||"";
   });
@@ -416,13 +421,13 @@ function App(){
     if(!pendingFiles.length||!user) return;
     if(!getToken()){ toast("Sesi expired, login ulang","error"); return; }
     setUploading(true);
-    const tipe=formData.tipe_dokumen||"Lainnya";
     try{
       for(let i=0;i<pendingFiles.length;i++){
         const f=pendingFiles[i];
         const driveFile=await uploadToDrive(f,pct=>setUploadProgress(p=>({...p,[f.name]:pct})));
         const doc={
-          id:genId(), nama_file:f.name, tipe_dokumen:tipe,
+          id:genId(), nama_file:f.name,
+          tipe_dokumen:formData.tipe_dokumen||guessDocType(f.name),
           no_referensi:formData.no_referensi||"",
           tanggal_upload:new Date().toISOString(),
           tanggal_dokumen:formData.tanggal_dokumen||"",
@@ -473,12 +478,19 @@ function App(){
   }
 
   async function exportCSV(){
-    const rows=[["ID","Nama File","Tipe","No Referensi","Status","Tgl Upload","Expired","Upload Oleh","Drive Link"]];
-    docs.forEach(d=>rows.push([d.id,d.nama_file,d.tipe_dokumen,d.no_referensi,d.status,d.tanggal_upload,d.tanggal_expired||"",d.upload_oleh,d.drive_web_link]));
+    const rows=[["ID","Nama File","Tipe","No Referensi","Status","Tgl Upload","Tgl Dokumen","Expired","Upload Oleh","Ukuran (bytes)","Keterangan","Tags","Drive Link"]];
+    docs.forEach(d=>rows.push([
+      d.id, d.nama_file, d.tipe_dokumen, d.no_referensi||"",
+      d.status, d.tanggal_upload, d.tanggal_dokumen||"",
+      d.tanggal_expired||"", d.upload_oleh, d.ukuran_file||0,
+      d.keterangan||"",
+      (Array.isArray(d.tags)?d.tags:d.tags?d.tags.split("|"):[]).join(", "),
+      d.drive_web_link
+    ]));
     const csv=rows.map(r=>r.map(c=>'"'+(c+"").replace(/"/g,'""')+'"').join(",")).join("\n");
     const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="DMS_Export.csv"; a.click();
-    toast("CSV berhasil diexport");
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="DMS_Export_"+new Date().toISOString().slice(0,10)+".csv"; a.click();
+    toast("CSV berhasil diexport ("+docs.length+" dokumen)");
   }
 
   const expiringSoon=docs.filter(d=>{ if(!d.tanggal_expired) return false; const r=daysUntil(d.tanggal_expired); return r!==null&&r<=30&&r>0; });
@@ -690,9 +702,9 @@ function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,upload
 }
 
 // ── DOCS PAGE ─────────────────────────────────────────────────────────
-function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
+function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,expiringSoon,expiredDocs,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
   function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Expired:"badge-expired",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
-  function expBadge(d){ if(!d.tanggal_expired) return null; const r=daysUntil(d.tanggal_expired); if(r===null) return null; if(r<=0) return <span className="badge badge-expired">Expired</span>; if(r<=30) return <span className="badge badge-expiring">{r}h</span>; return null; }
+  function expBadge(d){ if(!d.tanggal_expired) return null; const r=daysUntil(d.tanggal_expired); if(r===null) return null; if(r<=0) return d.status==="Expired"?null:<span className="badge badge-expired">Expired</span>; if(r<=30) return <span className="badge badge-expiring">{r}h</span>; return null; }
   return (
     <>
       <div className="header">
@@ -704,6 +716,8 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
         </div>
       </div>
       <div className="content">
+        {expiredDocs.length>0&&<div className="notif-banner" style={{marginBottom:16}}><span style={{fontSize:18}}>🚨</span><span><strong>{expiredDocs.length} dokumen</strong> sudah expired.</span></div>}
+        {expiringSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{expiringSoon.length} dokumen</strong> akan expired dalam 30 hari.</span></div>}
         <div className="toolbar">
           <div className="search-wrap"><span className="search-icon">🔍</span>
             <input className="search-input" placeholder="Cari dokumen..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
@@ -739,7 +753,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
                 <td style={{color:"var(--text3)",fontSize:12,fontFamily:"JetBrains Mono"}}>{fmtBytes(d.ukuran_file)}</td>
                 <td onClick={e=>e.stopPropagation()}>
                   <div style={{display:"flex",gap:4}}>
-                    <a href={d.drive_web_link} target="_blank" className="btn btn-ghost btn-sm" title="Buka Drive">↗</a>
+                    <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" title="Buka Drive">↗</a>
                     <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(d)}>✏️</button>
                     <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
                   </div>
@@ -758,7 +772,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
                 {statusBadge(d.status)}{expBadge(d)}
               </div>
               <div className="doc-card-actions" onClick={e=>e.stopPropagation()}>
-                <a href={d.drive_web_link} target="_blank" className="btn btn-ghost btn-sm">↗ Drive</a>
+                <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">↗ Drive</a>
                 <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
               </div>
             </div>
@@ -788,7 +802,7 @@ function DetailModal({doc,onClose,onDelete,onEdit}){
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
           <button className="btn btn-secondary" onClick={onEdit}>✏️ Edit</button>
-          <a href={doc.drive_web_link} target="_blank" className="btn btn-secondary">↗ Drive</a>
+          <a href={doc.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">↗ Drive</a>
           <button className="btn btn-danger" onClick={()=>{onClose();onDelete(doc);}}>🗑 Hapus</button>
         </div>
       </div>
