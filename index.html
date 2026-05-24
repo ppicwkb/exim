@@ -158,7 +158,7 @@ const CLIENT_ID   = "530281398554-bhhbsd9o989mt6b52k4r88uodnvdf98j.apps.googleus
 const FOLDER_ID   = "1JozsXF_7ooZYRcHzjAk8YQllfAnS03fW";
 const SHEET_ID    = "1db0D1yTN2w7kv8N2mOG-p6mSk-ZmsuDqbcoXdagEoKE";
 const SHEET_NAME  = "Dokumen";
-const SCOPES      = "openid profile email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets";
+const SCOPES      = "openid profile email https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets";
 const MIME_ACCEPT = ".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.zip";
 
 const DOC_TYPES  = ["Invoice","Packing List","Bill of Lading","AWB","PIB","PEB","COO","SKA","Letter of Credit","Phytosanitary","Fumigasi","Lainnya"];
@@ -300,12 +300,16 @@ async function sheetsDeleteRow(docId){
 async function uploadToDrive(file, onProgress){
   const tk=getToken();
   const meta={name:file.name,parents:[FOLDER_ID]};
-  const initRes=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",{
+  const initRes=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink&supportsAllDrives=true",{
     method:"POST",
     headers:{Authorization:"Bearer "+tk,"Content-Type":"application/json","X-Upload-Content-Type":getMime(file),"X-Upload-Content-Length":file.size},
     body:JSON.stringify(meta)
   });
-  if(!initRes.ok) throw new Error("Init upload gagal: "+initRes.status);
+  if(!initRes.ok){
+    let errMsg="Init upload gagal: "+initRes.status;
+    try{ const e=await initRes.json(); errMsg=e?.error?.message||errMsg; }catch(_){}
+    throw new Error(errMsg);
+  }
   const uploadUrl=initRes.headers.get("Location");
   return new Promise((resolve,reject)=>{
     const xhr=new XMLHttpRequest();
