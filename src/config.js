@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const GOOGLE_CONFIG = {
-  CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+  CLIENT_ID: '530281398554-bhhbsd9o989mt6b52k4r88uodnvdf98j.apps.googleusercontent.com',
 
   // Scope: Drive (upload file) + Sheets (baca/tulis metadata)
   SCOPES: [
