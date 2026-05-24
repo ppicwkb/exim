@@ -99,8 +99,10 @@ tbody tr:hover{background:var(--surface2);}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 .badge-final{background:rgba(0,212,170,0.15);color:var(--accent);}
 .badge-draft{background:rgba(255,107,53,0.15);color:var(--warn);}
+.badge-selesai{background:rgba(74,85,104,0.2);color:#a0aec0;}
 .badge-closing{background:rgba(255,61,90,0.15);color:var(--danger);}
 .badge-cancelled{background:rgba(74,85,104,0.15);color:var(--text3);}
+.badge-lewat{background:rgba(255,61,90,0.12);color:var(--danger);}
 .badge-type{background:rgba(0,153,255,0.12);color:var(--accent2);font-size:10px;padding:2px 7px;}
 .badge-closing-soon{background:rgba(245,200,66,0.15);color:var(--gold);}
 .doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
@@ -224,7 +226,7 @@ const SCOPES      = "openid profile email https://www.googleapis.com/auth/drive 
 const MIME_ACCEPT = ".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.zip";
 
 const DOC_TYPES  = ["Invoice","Packing List","Bill of Lading","AWB","PIB","PEB","COO","SKA","Letter of Credit","Phytosanitary","Fumigasi","Lainnya"];
-const DOC_STATUS = ["Draft","Final","Expired","Dibatalkan"];
+const DOC_STATUS = ["Draft","Final","Selesai","Dibatalkan"];
 
 // ── HELPERS ─────────────────────────────────────────────────────────
 function genId(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
@@ -232,7 +234,7 @@ function fmtBytes(b){ if(!b||b<1024) return (b||0)+"B"; if(b<1048576) return (b/
 function fmtDate(d){ if(!d) return "-"; const dt=d.includes("T")?new Date(d):new Date(d+"T00:00:00"); return dt.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
 function getExt(name){ return (name||"").split(".").pop().toLowerCase(); }
 function getMime(f){ return f.type||"application/octet-stream"; }
-function daysUntil(dateStr){ if(!dateStr) return null; return Math.ceil((new Date(dateStr)-new Date())/(864e5)); }
+function daysUntil(dateStr){ if(!dateStr) return null; const today=new Date(); today.setHours(0,0,0,0); const target=new Date(dateStr+"T00:00:00"); return Math.ceil((target-today)/864e5); }
 function guessDocType(name){
   const n=(name||"").toLowerCase();
   if(n.includes("invoice")||n.includes("inv_")||n.includes("_inv")) return "Invoice";
@@ -683,7 +685,7 @@ function App(){
           {[{id:"dashboard",label:"Dashboard",icon:"📊"},{id:"upload",label:"Upload Dokumen",icon:"⬆️"},{id:"dokumen",label:"Semua Dokumen",icon:"📁"}].map(m=>(
             <div key={m.id} className={`nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
               <span>{m.icon}</span>{m.label}
-              {m.id==="dokumen"&&(closingSoon.length+closedDocs.length)>0&&<span className="nav-badge">{closingSoon.length+closedDocs.length}</span>}
+              {m.id==="dokumen"&&closingSoon.length>0&&<span className="nav-badge">{closingSoon.length}</span>}
             </div>
           ))}
           <div style={{marginTop:16,padding:"0 10px"}}>
@@ -705,7 +707,7 @@ function App(){
       <main className="main">
         {page==="dashboard"&&<DashboardPage docs={docs} closingSoon={closingSoon} closedDocs={closedDocs} etaSoon={etaSoon} loading={loading} onNav={setPage} allInvoices={allInvoices} onDrillInvoice={(inv)=>{setFilterInvoice(inv);setPage("dokumen");}}/>}
         {page==="upload"&&<UploadPage pendingFiles={pendingFiles} formData={formData} setFormData={setFormData} dragging={dragging} uploading={uploading} uploadProgress={uploadProgress} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileInput={handleFileInput} onRemove={removeFile} onUpload={handleUpload} onCancel={()=>{setPendingFiles([]);setFormData({});}} fileInputRef={fileInputRef} user={user} allInvoices={allInvoices}/>}
-        {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterInvoice={filterInvoice} setFilterInvoice={setFilterInvoice} allInvoices={allInvoices} closingSoon={closingSoon} closedDocs={closedDocs} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
+        {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterInvoice={filterInvoice} setFilterInvoice={setFilterInvoice} allInvoices={allInvoices} closingSoon={closingSoon} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
       </main>
 
       {detailDoc&&<DetailModal doc={detailDoc} onClose={()=>setDetailDoc(null)} onDelete={handleDelete} onEdit={()=>{setEditDoc(detailDoc);setDetailDoc(null);}}/>}
@@ -717,7 +719,7 @@ function App(){
             <button key={m.id} className={`mobile-nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
               <span className="mobile-nav-icon">{m.icon}</span>
               <span>{m.label}</span>
-              {m.id==="dokumen"&&(closingSoon.length+closedDocs.length)>0&&<span className="mobile-nav-badge">{closingSoon.length+closedDocs.length}</span>}
+              {m.id==="dokumen"&&closingSoon.length>0&&<span className="mobile-nav-badge">{closingSoon.length}</span>}
             </button>
           ))}
           <button className="mobile-nav-item" onClick={handleLogout}>
@@ -733,12 +735,13 @@ function App(){
 // ── DASHBOARD ─────────────────────────────────────────────────────────
 function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInvoices,onDrillInvoice}){
   const totalSize=docs.reduce((a,d)=>a+(parseInt(d.ukuran_file)||0),0);
+  const [invPage,setInvPage]=useState(1);
+  const INV_PER_PAGE=10;
 
   const totalInvoice=new Set(docs.map(d=>d.no_invoice).filter(Boolean)).size;
   const byType=DOC_TYPES.reduce((a,t)=>({...a,[t]:docs.filter(d=>d.tipe_dokumen===t).length}),{});
   const byUser={};
   docs.forEach(d=>{ byUser[d.upload_oleh]=(byUser[d.upload_oleh]||0)+1; });
-  // per-invoice grouping for drill-down table
   const invoiceMap={};
   docs.forEach(d=>{
     if(!d.no_invoice) return;
@@ -749,6 +752,20 @@ function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInv
     if(!invoiceMap[d.no_invoice].destination&&d.destination) invoiceMap[d.no_invoice].destination=d.destination;
   });
   const invoiceEntries=Object.entries(invoiceMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  const totalInvPages=Math.ceil(invoiceEntries.length/INV_PER_PAGE);
+
+  // Reset ke halaman 1 kalau total halaman berkurang
+  useEffect(()=>{ if(invPage>totalInvPages&&totalInvPages>0) setInvPage(1); },[invoiceEntries.length]);
+
+  // Smart pagination: tampilkan max 5 nomor halaman dengan ellipsis
+  function pageButtons(cur, total){
+    if(total<=7) return Array.from({length:total},(_,i)=>i+1);
+    const pages=new Set([1,total,cur,cur-1,cur+1].filter(p=>p>=1&&p<=total));
+    const sorted=[...pages].sort((a,b)=>a-b);
+    const result=[];
+    sorted.forEach((p,i)=>{ if(i>0&&p-sorted[i-1]>1) result.push("…"); result.push(p); });
+    return result;
+  }
 
   return (
     <>
@@ -760,8 +777,7 @@ function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInv
         </div>
       </div>
       <div className="content">
-        {closedDocs.length>0&&<div className="notif-banner"><span style={{fontSize:18}}>🚨</span><span><strong>{closedDocs.length} dokumen</strong> sudah closing.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
-        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginTop:closedDocs.length?-8:0}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)"}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
         {etaSoon.length>0&&<div className="notif-banner" style={{background:"rgba(0,153,255,0.06)",borderColor:"rgba(0,153,255,0.2)",marginTop:4}}><span style={{fontSize:18}}>🕐</span><span><strong>{etaSoon.length} dokumen</strong> ETA dalam 10 hari ke depan.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
 
         <div className="stats-grid" style={{gridTemplateColumns:"repeat(5,1fr)"}}>
@@ -790,7 +806,7 @@ function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInv
               <span style={{fontSize:12,color:"var(--text3)",fontFamily:"JetBrains Mono"}}>{invoiceEntries.length} invoice · klik untuk lihat dokumen</span>
             </div>
             <div className="invoice-list-card">
-              {invoiceEntries.map(([inv,info])=>(
+              {invoiceEntries.slice((invPage-1)*INV_PER_PAGE, invPage*INV_PER_PAGE).map(([inv,info])=>(
                 <div key={inv} className="invoice-row" onClick={()=>onDrillInvoice(inv)}>
                   <span className="invoice-num">{inv}</span>
                   <span className="invoice-brand">{info.brand||<span style={{color:"var(--text3)"}}>—</span>}</span>
@@ -800,6 +816,22 @@ function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInv
                 </div>
               ))}
             </div>
+            {invoiceEntries.length>INV_PER_PAGE&&(
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderTop:"1px solid var(--border)",background:"var(--surface2)"}}>
+                <span style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)"}}>
+                  {((invPage-1)*INV_PER_PAGE)+1}–{Math.min(invPage*INV_PER_PAGE,invoiceEntries.length)} dari {invoiceEntries.length}
+                </span>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  <button className="btn btn-ghost btn-sm" disabled={invPage===1} onClick={()=>setInvPage(p=>p-1)}>← Prev</button>
+                  {pageButtons(invPage,totalInvPages).map((p,i)=>
+                    p==="…"
+                      ? <span key={"e"+i} style={{padding:"5px 4px",fontSize:12,color:"var(--text3)"}}>…</span>
+                      : <button key={p} className={`btn btn-sm ${invPage===p?"btn-primary":"btn-ghost"}`} onClick={()=>setInvPage(p)}>{p}</button>
+                  )}
+                  <button className="btn btn-ghost btn-sm" disabled={invPage>=totalInvPages} onClick={()=>setInvPage(p=>p+1)}>Next →</button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -1035,10 +1067,47 @@ function InvoiceGroupedView({docs,onDetail,onDelete,onEdit,statusBadge,expBadge}
 }
 
 // ── DOCS PAGE ─────────────────────────────────────────────────────────
-function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterInvoice,setFilterInvoice,allInvoices,closingSoon,closedDocs,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
+function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterInvoice,setFilterInvoice,allInvoices,closingSoon,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
   const [groupByInvoice,setGroupByInvoice]=useState(false);
-  function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Expired:"badge-closing",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
-  function expBadge(d){ if(!d.tanggal_closing) return null; const r=daysUntil(d.tanggal_closing); if(r===null) return null; if(r<=0) return d.status==="Expired"?null:<span className="badge badge-closing">Expired</span>; if(r<=2) return <span className="badge badge-closing-soon">{r}h</span>; return null; }
+  const [docPage,setDocPage]=useState(1);
+  const DOCS_PER_PAGE=25;
+  function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Selesai:"badge-selesai",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
+  function expBadge(d){ if(!d.tanggal_closing) return null; const r=daysUntil(d.tanggal_closing); if(r===null) return null; if(r<=0) return d.status==="Selesai"?null:<span className="badge badge-lewat">Lewat</span>; if(r<=2) return <span className="badge badge-closing-soon">{r}h</span>; return null; }
+
+  // Reset halaman saat filter/search berubah
+  useEffect(()=>{ setDocPage(1); },[docs.length, search, filterType, filterStatus, filterInvoice]);
+
+  function pageButtons(cur, total){
+    if(total<=7) return Array.from({length:total},(_,i)=>i+1);
+    const pages=new Set([1,total,cur,cur-1,cur+1].filter(p=>p>=1&&p<=total));
+    const sorted=[...pages].sort((a,b)=>a-b);
+    const result=[];
+    sorted.forEach((p,i)=>{ if(i>0&&p-sorted[i-1]>1) result.push("…"); result.push(p); });
+    return result;
+  }
+
+  const totalDocPages=Math.ceil(docs.length/DOCS_PER_PAGE);
+  const pagedDocs=docs.slice((docPage-1)*DOCS_PER_PAGE, docPage*DOCS_PER_PAGE);
+
+  function PaginationBar(){
+    if(docs.length<=DOCS_PER_PAGE) return null;
+    return (
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderTop:"1px solid var(--border)",background:"var(--surface2)",borderRadius:"0 0 12px 12px"}}>
+        <span style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)"}}>
+          {((docPage-1)*DOCS_PER_PAGE)+1}–{Math.min(docPage*DOCS_PER_PAGE,docs.length)} dari {docs.length} dokumen
+        </span>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          <button className="btn btn-ghost btn-sm" disabled={docPage===1} onClick={()=>setDocPage(p=>p-1)}>← Prev</button>
+          {pageButtons(docPage,totalDocPages).map((p,i)=>
+            p==="…"
+              ? <span key={"e"+i} style={{padding:"5px 4px",fontSize:12,color:"var(--text3)"}}>…</span>
+              : <button key={p} className={`btn btn-sm ${docPage===p?"btn-primary":"btn-ghost"}`} onClick={()=>setDocPage(p)}>{p}</button>
+          )}
+          <button className="btn btn-ghost btn-sm" disabled={docPage>=totalDocPages} onClick={()=>setDocPage(p=>p+1)}>Next →</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <div className="header">
@@ -1050,7 +1119,6 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
         </div>
       </div>
       <div className="content">
-        {closedDocs.length>0&&<div className="notif-banner" style={{marginBottom:16}}><span style={{fontSize:18}}>🚨</span><span><strong>{closedDocs.length} dokumen</strong> sudah closing.</span></div>}
         {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
         <div className="toolbar">
           <div className="search-wrap"><span className="search-icon">🔍</span>
@@ -1084,7 +1152,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
         ):view==="list"?(
           <div className="table-wrap"><table>
             <thead><tr><th>Nama File</th><th>Tipe</th><th>No Invoice</th><th>Brand</th><th>Destination</th><th>Status</th><th>Upload Oleh</th><th>Tgl Upload</th><th></th></tr></thead>
-            <tbody>{docs.map(d=>(
+            <tbody>{pagedDocs.map(d=>(
               <tr key={d.id} style={{cursor:"pointer"}} onClick={()=>onDetail(d)}>
                 <td><div style={{display:"flex",alignItems:"center",gap:8}}>
                   <FileIcon name={d.nama_file} size={16}/>
@@ -1107,9 +1175,9 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
                 </td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table><PaginationBar/></div>
         ):view==="grid"?(
-          <div className="doc-grid">{docs.map(d=>(
+          <><div className="doc-grid">{pagedDocs.map(d=>(
             <div key={d.id} className="doc-card" onClick={()=>onDetail(d)}>
               <div className="doc-card-icon"><FileIcon name={d.nama_file} size={24}/></div>
               <div className="doc-card-name">{d.nama_file}</div>
@@ -1125,9 +1193,9 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
                 <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
               </div>
             </div>
-          ))}</div>
+          ))}</div><div style={{marginTop:12}}><PaginationBar/></div></>
         ):(
-          <div className="mobile-doc-list">{docs.map(d=>(
+          <><div className="mobile-doc-list">{pagedDocs.map(d=>(
             <div key={d.id} className="mobile-doc-card" onClick={()=>onDetail(d)}>
               <div className="mobile-doc-card-top">
                 <div className="file-ext" style={{width:40,height:40,borderRadius:8,background:"rgba(0,212,170,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"JetBrains Mono",fontSize:9,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",flexShrink:0}}>{getExt(d.nama_file)}</div>
@@ -1149,7 +1217,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
                 <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
               </div>
             </div>
-          ))}</div>
+          ))}</div><div style={{marginTop:12}}><PaginationBar/></div></>
         )}
       </div>
     </>
