@@ -3,6 +3,7 @@ import { GOOGLE_CONFIG } from './config'
 let accessToken = null
 let tokenClient = null
 
+// FIX: initGoogleAuth kini terima onToken callback terus, tanpa guna window.__onDmsToken
 export function initGoogleAuth(onSignIn, onSignOut) {
   tokenClient = window.google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CONFIG.CLIENT_ID,
@@ -10,12 +11,13 @@ export function initGoogleAuth(onSignIn, onSignOut) {
     callback: async (response) => {
       if (response.error) { onSignOut?.(); return }
       accessToken = response.access_token
-      // Kirim token ke App.jsx via window callback
-      window.__onDmsToken?.(accessToken)
       try {
         const profile = await fetchUserProfile()
+        // Pass profile DAN token terus — onSignIn akan handle initSheet
         onSignIn?.(profile, accessToken)
-      } catch { onSignOut?.() }
+      } catch {
+        onSignOut?.()
+      }
     },
   })
 }
@@ -76,12 +78,15 @@ export async function uploadFileToDrive(file, onProgress) {
 }
 
 export async function deleteFileFromDrive(fileId) {
-  try {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-  } catch (e) { console.warn('Gagal hapus Drive:', e.message) }
+  if (!fileId) return
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  // 404 = file sudah takde, bukan error fatal
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Gagal hapus file dari Drive: ${res.status}`)
+  }
 }
 
 export async function getFileBlob(fileId) {

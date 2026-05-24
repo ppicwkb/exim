@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // KONFIGURASI UTAMA
+// FIX: Semua sensitive config baca dari environment variables (.env)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const GOOGLE_CONFIG = {
-  CLIENT_ID: '530281398554-bhhbsd9o989mt6b52k4r88uodnvdf98j.apps.googleusercontent.com',
+  CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
 
   // Scope: Drive (upload file) + Sheets (baca/tulis metadata)
   SCOPES: [
@@ -12,10 +13,10 @@ export const GOOGLE_CONFIG = {
   ].join(' '),
 
   // Google Drive Folder ID tempat file disimpan
-  FOLDER_ID: '1JozsXF_7ooZYRcHzjAk8YQllfAnS03fW',
+  FOLDER_ID: import.meta.env.VITE_GOOGLE_FOLDER_ID,
 
   // Google Sheets ID tempat metadata disimpan
-  SHEET_ID: '1db0D1yTN2w7kv8N2mOG-p6mSk-ZmsuDqbcoXdagEoKE',
+  SHEET_ID: import.meta.env.VITE_GOOGLE_SHEET_ID,
 
   // Nama sheet/tab di dalam spreadsheet
   SHEET_TAB: 'Dokumen',
@@ -37,18 +38,18 @@ export const SHEET_HEADERS = [
 ]
 
 export const TIPE_DOKUMEN = [
-  { value: 'Invoice',   label: 'Commercial Invoice',         hasExpiry: false },
-  { value: 'PL',        label: 'Packing List',               hasExpiry: false },
-  { value: 'BL',        label: 'Bill of Lading',             hasExpiry: false },
-  { value: 'AWB',       label: 'Air Waybill',                hasExpiry: false },
-  { value: 'PIB',       label: 'Pemberitahuan Impor Barang', hasExpiry: false },
-  { value: 'PEB',       label: 'Pemberitahuan Ekspor Barang',hasExpiry: false },
-  { value: 'COO',       label: 'Certificate of Origin',      hasExpiry: true  },
-  { value: 'SKA',       label: 'Surat Keterangan Asal',      hasExpiry: true  },
-  { value: 'LC',        label: 'Letter of Credit',           hasExpiry: true  },
-  { value: 'Phyto',     label: 'Phytosanitary Certificate',  hasExpiry: true  },
-  { value: 'Fumigasi',  label: 'Fumigation Certificate',     hasExpiry: true  },
-  { value: 'Lainnya',   label: 'Lainnya',                    hasExpiry: false },
+  { value: 'Invoice',   label: 'Commercial Invoice',          hasExpiry: false },
+  { value: 'PL',        label: 'Packing List',                hasExpiry: false },
+  { value: 'BL',        label: 'Bill of Lading',              hasExpiry: false },
+  { value: 'AWB',       label: 'Air Waybill',                 hasExpiry: false },
+  { value: 'PIB',       label: 'Pemberitahuan Impor Barang',  hasExpiry: false },
+  { value: 'PEB',       label: 'Pemberitahuan Ekspor Barang', hasExpiry: false },
+  { value: 'COO',       label: 'Certificate of Origin',       hasExpiry: true  },
+  { value: 'SKA',       label: 'Surat Keterangan Asal',       hasExpiry: true  },
+  { value: 'LC',        label: 'Letter of Credit',            hasExpiry: true  },
+  { value: 'Phyto',     label: 'Phytosanitary Certificate',   hasExpiry: true  },
+  { value: 'Fumigasi',  label: 'Fumigation Certificate',      hasExpiry: true  },
+  { value: 'Lainnya',   label: 'Lainnya',                     hasExpiry: false },
 ]
 
 export const STATUS_DOKUMEN = [

@@ -1,15 +1,15 @@
-import React, { useState, useEffect, createContext, useContext } from 'react'
+import React, { useState, useEffect, createContext, useCallback } from 'react'
 import { initGoogleAuth, requestAccessToken, revokeToken } from './googleDrive'
 import { initSheet, getAllDokumen } from './sheets'
 import { APP_CONFIG } from './config'
-import LoginPage from './components/LoginPage'
-import Sidebar from './components/Sidebar'
-import DokumenPage from './components/DokumenPage'
-import UploadPage from './components/UploadPage'
-import NotifPage from './components/NotifPage'
-import SettingsPage from './components/SettingsPage'
+import LoginPage from '../components/LoginPage'
+import Sidebar from '../components/Sidebar'
+import DokumenPage from '../components/DokumenPage'
+import UploadPage from '../components/UploadPage'
+import NotifPage from '../components/NotifPage'
+import SettingsPage from '../components/SettingsPage'
 
-// Context untuk share accessToken ke sheets.js via App
+// Context untuk share accessToken ke komponen lain
 export const TokenContext = createContext(null)
 
 function getDaysToExpiry(iso) {
@@ -27,6 +27,17 @@ export default function App() {
   const [expiredCount, setExpiredCount] = useState(0)
   const [googleReady, setGoogleReady] = useState(false)
 
+  // FIX: Token handler sebagai useCallback supaya stable reference
+  const handleToken = useCallback(async (tok) => {
+    setToken(tok)
+    try {
+      await initSheet(tok)
+      setSheetReady(true)
+    } catch (e) {
+      setSheetError(e.message)
+    }
+  }, [])
+
   // Tunggu Google GSI script siap
   useEffect(() => {
     function check() {
@@ -38,30 +49,21 @@ export default function App() {
 
   useEffect(() => {
     if (!googleReady) return
+    // FIX: Pass handleToken terus ke initGoogleAuth, tanpa guna window.__onDmsToken
     initGoogleAuth(
       async (profile, tok) => {
         setUser(profile)
         setAuthLoading(false)
+        await handleToken(tok)
       },
-      () => { setUser(null); setToken(null); setAuthLoading(false); setSheetReady(false) }
-    )
-  }, [googleReady])
-
-  // Setelah user login, init sheet dengan token
-  // Token datang dari callback OAuth — kita ambil dari window sementara
-  useEffect(() => {
-    if (!user) return
-    // Token sudah disimpan di googleDrive.js, kita expose via event
-    window.__onDmsToken = async (tok) => {
-      setToken(tok)
-      try {
-        await initSheet(tok)
-        setSheetReady(true)
-      } catch (e) {
-        setSheetError(e.message)
+      () => {
+        setUser(null)
+        setToken(null)
+        setAuthLoading(false)
+        setSheetReady(false)
       }
-    }
-  }, [user])
+    )
+  }, [googleReady, handleToken])
 
   // Hitung notifikasi expired
   useEffect(() => {
@@ -82,7 +84,10 @@ export default function App() {
 
   function handleLogout() {
     revokeToken()
-    setUser(null); setToken(null); setSheetReady(false); setSheetError(null)
+    setUser(null)
+    setToken(null)
+    setSheetReady(false)
+    setSheetError(null)
     setPage('dokumen')
   }
 
@@ -93,7 +98,7 @@ export default function App() {
       <div className="text-center">
         {sheetError ? (
           <>
-            <p className="text-red-500 font-600 mb-2">Gagal terhubung ke Google Sheets</p>
+            <p className="text-red-500 font-semibold mb-2">Gagal terhubung ke Google Sheets</p>
             <p className="text-sm text-slate-500 mb-4">{sheetError}</p>
             <button onClick={handleLogout} className="text-sm text-brand-600 hover:underline">Coba lagi</button>
           </>
@@ -111,9 +116,10 @@ export default function App() {
     <TokenContext.Provider value={token}>
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar active={page} onNav={setPage} user={user} onLogout={handleLogout} expiredCount={expiredCount} />
-        <main className="flex-1 p-6 overflow-auto scrollbar-thin">
+        <main className="flex-1 p-6 overflow-auto">
+          {/* FIX: Pass user ke UploadPage untuk audit trail upload_oleh */}
           {page === 'dokumen'  && <DokumenPage onGoUpload={() => setPage('upload')} />}
-          {page === 'upload'   && <UploadPage onUploadDone={() => setPage('dokumen')} />}
+          {page === 'upload'   && <UploadPage onUploadDone={() => setPage('dokumen')} user={user} />}
           {page === 'notif'    && <NotifPage />}
           {page === 'settings' && <SettingsPage user={user} />}
         </main>
