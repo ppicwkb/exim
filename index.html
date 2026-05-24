@@ -280,25 +280,51 @@ async function gFetch(url, opts={}){
 const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_closing","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags","no_invoice","tanggal_eta","brand","destination"];
 
 async function sheetsEnsureHeader(){
+  // Read current header (up to col S = 19 cols)
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:S1")}`;
   const res=await gFetch(url);
-  if(!res.values||!res.values[0]||res.values[0][0]!=="id"){
-    const appendRange=encodeURIComponent(`${SHEET_NAME}!A1`);
-    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${appendRange}:append?valueInputOption=RAW`,{
-      method:"POST",headers:{"Content-Type":"application/json"},
+  const existing=(res.values&&res.values[0])||[];
+  if(!existing.length||existing[0]!=="id"){
+    // Sheet has no header at all — write full header
+    const r=encodeURIComponent(`${SHEET_NAME}!A1`);
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${r}?valueInputOption=RAW`,{
+      method:"PUT",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({values:[SHEET_COLS]})
     });
+  } else {
+    // Header exists — append any missing columns to the right
+    const missing=SHEET_COLS.filter(c=>!existing.includes(c));
+    if(missing.length){
+      const startCol=existing.length; // 0-based index of first new col
+      // Build column letter from 0-based index
+      const colLetter=n=>String.fromCharCode(65+n);
+      const startLetter=colLetter(startCol);
+      const endLetter=colLetter(startCol+missing.length-1);
+      const patchRange=encodeURIComponent(`${SHEET_NAME}!${startLetter}1:${endLetter}1`);
+      await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${patchRange}?valueInputOption=RAW`,{
+        method:"PUT",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({values:[missing]})
+      });
+    }
   }
 }
 
 async function sheetsReadAll(){
+  // Always read full SHEET_COLS range so new columns are captured
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A:S")}`;
   const res=await gFetch(url);
   if(!res.values||res.values.length<2) return [];
   const [header,...rows]=res.values;
+  // Build a position map: col name -> index in actual sheet
+  const colPos={};
+  header.forEach((h,i)=>{ colPos[h]=i; });
   return rows.map(r=>{
     const obj={};
-    header.forEach((h,i)=>obj[h]=r[i]||"");
+    // Map every expected column, falling back to "" if missing in this row
+    SHEET_COLS.forEach(c=>{
+      const i=colPos[c];
+      obj[c]=(i!==undefined&&r[i]!==undefined)?r[i]:"";
+    });
     obj.ukuran_file=parseInt(obj.ukuran_file)||0;
     obj.tags=obj.tags?obj.tags.split("|").filter(Boolean):[];
     return obj;
@@ -318,17 +344,26 @@ async function sheetsAppendRow(doc){
 }
 
 async function sheetsUpdateRow(docId, updates){
+  // Read column A to find the row number
   const colARange=encodeURIComponent(`${SHEET_NAME}!A:A`);
   const res=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${colARange}`);
   if(!res.values) return;
   const rowIdx=res.values.findIndex(r=>r[0]===docId);
   if(rowIdx<0){ toast("Dokumen tidak ditemukan di sheet","error"); return; }
   const rowNum=rowIdx+1;
+  // Read header row to know actual column positions
+  const headerRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:S1")}`);
+  const header=(headerRes.values&&headerRes.values[0])||SHEET_COLS;
+  const colPos={};
+  header.forEach((h,i)=>{ colPos[h]=i; });
+  // Read the current row
   const rowRange=encodeURIComponent(`${SHEET_NAME}!A${rowNum}:S${rowNum}`);
   const rowRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}`);
   const curRow=(rowRes.values&&rowRes.values[0])||[];
-  const newRow=SHEET_COLS.map((c,i)=>{
+  // Build new row matching the actual header order (not SHEET_COLS order)
+  const newRow=header.map((c,i)=>{
     if(c==="tags"){
+      if(!(c in updates)) return curRow[i]||"";
       const t=updates.tags;
       if(!t) return "";
       if(Array.isArray(t)) return t.join("|");
@@ -337,9 +372,18 @@ async function sheetsUpdateRow(docId, updates){
     if(c in updates) return updates[c]!==null&&updates[c]!==undefined?String(updates[c]):"";
     return curRow[i]||"";
   });
+  // Ensure row covers full SHEET_COLS width (add empty cells for any cols not in current header)
+  const fullRow=[...newRow];
+  SHEET_COLS.forEach(c=>{
+    if(!(c in colPos)){
+      // Column not yet in sheet header — but sheetsEnsureHeader runs first so this shouldn't happen
+      // Append at end just in case
+      fullRow.push((c in updates)?String(updates[c]||""):"");
+    }
+  });
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}?valueInputOption=RAW`,{
     method:"PUT",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({values:[newRow]})
+    body:JSON.stringify({values:[fullRow.slice(0,SHEET_COLS.length)]})
   });
 }
 
