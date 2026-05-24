@@ -99,10 +99,10 @@ tbody tr:hover{background:var(--surface2);}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 .badge-final{background:rgba(0,212,170,0.15);color:var(--accent);}
 .badge-draft{background:rgba(255,107,53,0.15);color:var(--warn);}
-.badge-expired{background:rgba(255,61,90,0.15);color:var(--danger);}
+.badge-closing{background:rgba(255,61,90,0.15);color:var(--danger);}
 .badge-cancelled{background:rgba(74,85,104,0.15);color:var(--text3);}
 .badge-type{background:rgba(0,153,255,0.12);color:var(--accent2);font-size:10px;padding:2px 7px;}
-.badge-expiring{background:rgba(245,200,66,0.15);color:var(--gold);}
+.badge-closing-soon{background:rgba(245,200,66,0.15);color:var(--gold);}
 .doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
 .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
 .doc-card:hover{border-color:var(--accent);transform:translateY(-1px);}
@@ -167,7 +167,7 @@ tbody tr:hover{background:var(--surface2);}
   .sidebar{display:none;}
   .mobile-nav{display:flex;}
   .main{margin-left:0;padding-bottom:64px;}
-  .stats-grid{grid-template-columns:1fr 1fr;gap:10px;}
+  .stats-grid{grid-template-columns:1fr 1fr!important;gap:10px;}
   .content{padding:16px;}
   .header{padding:0 16px;height:52px;}
   .header-title{font-size:14px;}
@@ -250,10 +250,10 @@ async function gFetch(url, opts={}){
 }
 
 // ── SHEETS API ───────────────────────────────────────────────────────
-const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_expired","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags","no_invoice"];
+const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_closing","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags","no_invoice","tanggal_eta"];
 
 async function sheetsEnsureHeader(){
-  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:P1")}`;
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:Q1")}`;
   const res=await gFetch(url);
   if(!res.values||!res.values[0]||res.values[0][0]!=="id"){
     const appendRange=encodeURIComponent(`${SHEET_NAME}!A1`);
@@ -265,7 +265,7 @@ async function sheetsEnsureHeader(){
 }
 
 async function sheetsReadAll(){
-  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A:P")}`;
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A:Q")}`;
   const res=await gFetch(url);
   if(!res.values||res.values.length<2) return [];
   const [header,...rows]=res.values;
@@ -283,7 +283,7 @@ async function sheetsAppendRow(doc){
     if(c==="tags") return (doc.tags||[]).join("|");
     return doc[c]!==null&&doc[c]!==undefined?String(doc[c]):"";
   });
-  const appendRange=encodeURIComponent(`${SHEET_NAME}!A:P`);
+  const appendRange=encodeURIComponent(`${SHEET_NAME}!A:Q`);
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${appendRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
     method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({values:[row]})
@@ -297,7 +297,7 @@ async function sheetsUpdateRow(docId, updates){
   const rowIdx=res.values.findIndex(r=>r[0]===docId);
   if(rowIdx<0){ toast("Dokumen tidak ditemukan di sheet","error"); return; }
   const rowNum=rowIdx+1;
-  const rowRange=encodeURIComponent(`${SHEET_NAME}!A${rowNum}:P${rowNum}`);
+  const rowRange=encodeURIComponent(`${SHEET_NAME}!A${rowNum}:Q${rowNum}`);
   const rowRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}`);
   const curRow=(rowRes.values&&rowRes.values[0])||[];
   const newRow=SHEET_COLS.map((c,i)=>{
@@ -451,7 +451,7 @@ function App(){
     });
     if(valid.length){
       setFormData(prev=>Object.keys(prev).length===0
-        ?{tipe_dokumen:guessDocType(valid[0].name),status:"Draft",no_referensi:"",no_invoice:"",tanggal_dokumen:"",tanggal_expired:"",keterangan:"",tags:""}
+        ?{tipe_dokumen:guessDocType(valid[0].name),status:"Draft",no_referensi:"",no_invoice:"",tanggal_dokumen:"",tanggal_closing:"",tanggal_eta:"",keterangan:"",tags:""}
         :prev
       );
     }
@@ -473,7 +473,8 @@ function App(){
           no_invoice:formData.no_invoice||"",
           tanggal_upload:new Date().toISOString(),
           tanggal_dokumen:formData.tanggal_dokumen||"",
-          tanggal_expired:formData.tanggal_expired||"",
+          tanggal_closing:formData.tanggal_closing||"",
+          tanggal_eta:formData.tanggal_eta||"",
           status:formData.status||"Draft",
           ukuran_file:f.size, tipe_mime:getMime(f),
           drive_file_id:driveFile.id,
@@ -511,7 +512,8 @@ function App(){
         no_referensi:data.no_referensi||"",
         no_invoice:data.no_invoice||"",
         tanggal_dokumen:data.tanggal_dokumen||"",
-        tanggal_expired:data.tanggal_expired||"",
+        tanggal_closing:data.tanggal_closing||"",
+        tanggal_eta:data.tanggal_eta||"",
         keterangan:data.keterangan||"",
         tags:data.tags?data.tags.split(",").map(t=>t.trim()).filter(Boolean):[]
       });
@@ -521,12 +523,12 @@ function App(){
   }
 
   async function exportCSV(){
-    const rows=[["ID","Nama File","Tipe","No Referensi","No Invoice","Status","Tgl Upload","Tgl Dokumen","Expired","Upload Oleh","Ukuran (bytes)","Keterangan","Tags","Drive Link"]];
+    const rows=[["ID","Nama File","Tipe","No Referensi","No Invoice","Status","Tgl Upload","Tgl Dokumen","Tgl Closing","Tgl ETA","Upload Oleh","Ukuran (bytes)","Keterangan","Tags","Drive Link"]];
     docs.forEach(d=>rows.push([
       d.id, d.nama_file, d.tipe_dokumen, d.no_referensi||"",
       d.no_invoice||"",
       d.status, d.tanggal_upload, d.tanggal_dokumen||"",
-      d.tanggal_expired||"", d.upload_oleh, d.ukuran_file||0,
+      d.tanggal_closing||"", d.tanggal_eta||"", d.upload_oleh, d.ukuran_file||0,
       d.keterangan||"",
       (Array.isArray(d.tags)?d.tags:d.tags?d.tags.split("|"):[]).join(", "),
       d.drive_web_link
@@ -537,8 +539,8 @@ function App(){
     toast("CSV berhasil diexport ("+docs.length+" dokumen)");
   }
 
-  const expiringSoon=docs.filter(d=>{ if(!d.tanggal_expired) return false; const r=daysUntil(d.tanggal_expired); return r!==null&&r<=30&&r>0; });
-  const expiredDocs=docs.filter(d=>{ if(!d.tanggal_expired) return false; const r=daysUntil(d.tanggal_expired); return r!==null&&r<=0; });
+  const closingSoon=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=30&&r>0; });
+  const closedDocs=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=0; });
   const filtered=docs.filter(d=>{
     const s=search.toLowerCase();
     const ms=!s||(d.nama_file||"").toLowerCase().includes(s)||(d.no_referensi||"").toLowerCase().includes(s)||(d.no_invoice||"").toLowerCase().includes(s)||(d.keterangan||"").toLowerCase().includes(s);
@@ -580,7 +582,7 @@ function App(){
           {[{id:"dashboard",label:"Dashboard",icon:"📊"},{id:"upload",label:"Upload Dokumen",icon:"⬆️"},{id:"dokumen",label:"Semua Dokumen",icon:"📁"}].map(m=>(
             <div key={m.id} className={`nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
               <span>{m.icon}</span>{m.label}
-              {m.id==="dokumen"&&(expiringSoon.length+expiredDocs.length)>0&&<span className="nav-badge">{expiringSoon.length+expiredDocs.length}</span>}
+              {m.id==="dokumen"&&(closingSoon.length+closedDocs.length)>0&&<span className="nav-badge">{closingSoon.length+closedDocs.length}</span>}
             </div>
           ))}
           <div style={{marginTop:16,padding:"0 10px"}}>
@@ -600,9 +602,9 @@ function App(){
       </aside>
 
       <main className="main">
-        {page==="dashboard"&&<DashboardPage docs={docs} expiringSoon={expiringSoon} expiredDocs={expiredDocs} loading={loading} onNav={setPage}/>}
+        {page==="dashboard"&&<DashboardPage docs={docs} closingSoon={closingSoon} closedDocs={closedDocs} loading={loading} onNav={setPage}/>}
         {page==="upload"&&<UploadPage pendingFiles={pendingFiles} formData={formData} setFormData={setFormData} dragging={dragging} uploading={uploading} uploadProgress={uploadProgress} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileInput={handleFileInput} onRemove={removeFile} onUpload={handleUpload} onCancel={()=>{setPendingFiles([]);setFormData({});}} fileInputRef={fileInputRef} user={user}/>}
-        {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} expiringSoon={expiringSoon} expiredDocs={expiredDocs} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
+        {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} closingSoon={closingSoon} closedDocs={closedDocs} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
       </main>
 
       {detailDoc&&<DetailModal doc={detailDoc} onClose={()=>setDetailDoc(null)} onDelete={handleDelete} onEdit={()=>{setEditDoc(detailDoc);setDetailDoc(null);}}/>}
@@ -614,7 +616,7 @@ function App(){
             <button key={m.id} className={`mobile-nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
               <span className="mobile-nav-icon">{m.icon}</span>
               <span>{m.label}</span>
-              {m.id==="dokumen"&&(expiringSoon.length+expiredDocs.length)>0&&<span className="mobile-nav-badge">{expiringSoon.length+expiredDocs.length}</span>}
+              {m.id==="dokumen"&&(closingSoon.length+closedDocs.length)>0&&<span className="mobile-nav-badge">{closingSoon.length+closedDocs.length}</span>}
             </button>
           ))}
           <button className="mobile-nav-item" onClick={handleLogout}>
@@ -628,11 +630,11 @@ function App(){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────
-function DashboardPage({docs,expiringSoon,expiredDocs,loading,onNav}){
+function DashboardPage({docs,closingSoon,closedDocs,loading,onNav}){
   const totalSize=docs.reduce((a,d)=>a+(parseInt(d.ukuran_file)||0),0);
   const finals=docs.filter(d=>d.status==="Final").length;
+  const totalInvoice=new Set(docs.map(d=>d.no_invoice).filter(Boolean)).size;
   const byType=DOC_TYPES.reduce((a,t)=>({...a,[t]:docs.filter(d=>d.tipe_dokumen===t).length}),{});
-  // upload oleh stats
   const byUser={};
   docs.forEach(d=>{ byUser[d.upload_oleh]=(byUser[d.upload_oleh]||0)+1; });
 
@@ -646,13 +648,14 @@ function DashboardPage({docs,expiringSoon,expiredDocs,loading,onNav}){
         </div>
       </div>
       <div className="content">
-        {expiredDocs.length>0&&<div className="notif-banner"><span style={{fontSize:18}}>🚨</span><span><strong>{expiredDocs.length} dokumen</strong> sudah expired.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
-        {expiringSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginTop:expiredDocs.length?-8:0}}><span style={{fontSize:18}}>⚠️</span><span><strong>{expiringSoon.length} dokumen</strong> akan expired dalam 30 hari.</span></div>}
+        {closedDocs.length>0&&<div className="notif-banner"><span style={{fontSize:18}}>🚨</span><span><strong>{closedDocs.length} dokumen</strong> sudah closing.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginTop:closedDocs.length?-8:0}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 30 hari.</span></div>}
 
-        <div className="stats-grid">
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(5,1fr)"}}>
           <div className="stat-card accent"><div className="stat-label">Total Dokumen</div><div className="stat-value">{docs.length}</div><div className="stat-sub">Semua tipe</div></div>
+          <div className="stat-card blue"><div className="stat-label">Total Invoice</div><div className="stat-value">{totalInvoice}</div><div className="stat-sub">No. unik</div></div>
           <div className="stat-card blue"><div className="stat-label">Final</div><div className="stat-value">{finals}</div><div className="stat-sub">{docs.length?Math.round(finals/docs.length*100):0}% dari total</div></div>
-          <div className="stat-card warn"><div className="stat-label">Akan Expired</div><div className="stat-value">{expiringSoon.length}</div><div className="stat-sub">Dalam 30 hari</div></div>
+          <div className="stat-card warn"><div className="stat-label">Closing Segera</div><div className="stat-value">{closingSoon.length}</div><div className="stat-sub">Dalam 30 hari</div></div>
           <div className="stat-card danger"><div className="stat-label">Total Ukuran</div><div className="stat-value">{fmtBytes(totalSize)}</div><div className="stat-sub">Di Google Drive</div></div>
         </div>
 
@@ -679,12 +682,20 @@ function DashboardPage({docs,expiringSoon,expiredDocs,loading,onNav}){
           </>
         )}
 
-        {expiringSoon.length>0&&(
+        {closingSoon.length>0&&(
           <>
-            <div className="section-header" style={{marginTop:28}}><div className="section-title">⚠️ Segera Expired</div></div>
-            <div className="table-wrap"><table><thead><tr><th>Dokumen</th><th>Tipe</th><th>Expired</th><th>Sisa</th><th>Upload Oleh</th></tr></thead>
-            <tbody>{expiringSoon.map(d=>(
-              <tr key={d.id}><td>{d.nama_file}</td><td><span className="badge badge-type">{d.tipe_dokumen}</span></td><td>{fmtDate(d.tanggal_expired)}</td><td><span className="badge badge-expiring">{daysUntil(d.tanggal_expired)} hari</span></td><td style={{fontSize:12,color:"var(--text3)"}}>{d.upload_oleh}</td></tr>
+            <div className="section-header" style={{marginTop:28}}><div className="section-title">⚠️ Segera Closing</div></div>
+            <div className="table-wrap"><table><thead><tr><th>Dokumen</th><th>Tipe</th><th>No Invoice</th><th>Tgl Closing</th><th>ETA</th><th>Sisa</th><th>Upload Oleh</th></tr></thead>
+            <tbody>{closingSoon.map(d=>(
+              <tr key={d.id}>
+                <td>{d.nama_file}</td>
+                <td><span className="badge badge-type">{d.tipe_dokumen}</span></td>
+                <td style={{fontFamily:"JetBrains Mono",fontSize:12,color:"var(--accent2)"}}>{d.no_invoice||"-"}</td>
+                <td>{fmtDate(d.tanggal_closing)}</td>
+                <td>{d.tanggal_eta?fmtDate(d.tanggal_eta):"-"}</td>
+                <td><span className="badge badge-closing-soon">{daysUntil(d.tanggal_closing)} hari</span></td>
+                <td style={{fontSize:12,color:"var(--text3)"}}>{d.upload_oleh}</td>
+              </tr>
             ))}</tbody></table></div>
           </>
         )}
@@ -741,8 +752,10 @@ function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,upload
                   <input className="form-input" value={formData.no_invoice||""} onChange={e=>setFormData(p=>({...p,no_invoice:e.target.value}))} placeholder="misal: INV-2026-001"/></div>
                 <div className="form-group"><label className="form-label">Tanggal Dokumen</label>
                   <input type="date" className="form-input" value={formData.tanggal_dokumen||""} onChange={e=>setFormData(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
-                <div className="form-group"><label className="form-label">Tanggal Expired (opsional)</label>
-                  <input type="date" className="form-input" value={formData.tanggal_expired||""} onChange={e=>setFormData(p=>({...p,tanggal_expired:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tanggal Closing</label>
+                  <input type="date" className="form-input" value={formData.tanggal_closing||""} onChange={e=>setFormData(p=>({...p,tanggal_closing:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tanggal ETA</label>
+                  <input type="date" className="form-input" value={formData.tanggal_eta||""} onChange={e=>setFormData(p=>({...p,tanggal_eta:e.target.value}))}/></div>
                 <div className="form-group"><label className="form-label">Tags (pisah koma)</label>
                   <input className="form-input" value={formData.tags||""} onChange={e=>setFormData(p=>({...p,tags:e.target.value}))} placeholder="urgent, Q2-2026"/></div>
                 <div className="form-group full"><label className="form-label">Keterangan</label>
@@ -763,9 +776,9 @@ function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,upload
 }
 
 // ── DOCS PAGE ─────────────────────────────────────────────────────────
-function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,expiringSoon,expiredDocs,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
-  function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Expired:"badge-expired",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
-  function expBadge(d){ if(!d.tanggal_expired) return null; const r=daysUntil(d.tanggal_expired); if(r===null) return null; if(r<=0) return d.status==="Expired"?null:<span className="badge badge-expired">Expired</span>; if(r<=30) return <span className="badge badge-expiring">{r}h</span>; return null; }
+function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,closingSoon,closedDocs,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
+  function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Expired:"badge-closing",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
+  function expBadge(d){ if(!d.tanggal_closing) return null; const r=daysUntil(d.tanggal_closing); if(r===null) return null; if(r<=0) return d.status==="Expired"?null:<span className="badge badge-closing">Expired</span>; if(r<=30) return <span className="badge badge-closing-soon">{r}h</span>; return null; }
   return (
     <>
       <div className="header">
@@ -777,8 +790,8 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
         </div>
       </div>
       <div className="content">
-        {expiredDocs.length>0&&<div className="notif-banner" style={{marginBottom:16}}><span style={{fontSize:18}}>🚨</span><span><strong>{expiredDocs.length} dokumen</strong> sudah expired.</span></div>}
-        {expiringSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{expiringSoon.length} dokumen</strong> akan expired dalam 30 hari.</span></div>}
+        {closedDocs.length>0&&<div className="notif-banner" style={{marginBottom:16}}><span style={{fontSize:18}}>🚨</span><span><strong>{closedDocs.length} dokumen</strong> sudah closing.</span></div>}
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 30 hari.</span></div>}
         <div className="toolbar">
           <div className="search-wrap"><span className="search-icon">🔍</span>
             <input className="search-input" placeholder="Cari dokumen..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
@@ -877,7 +890,8 @@ function DetailModal({doc,onClose,onDelete,onEdit}){
     ["No Invoice",doc.no_invoice||"-"],
     ["Status",doc.status],["Upload Oleh",doc.upload_oleh],["Tgl Upload",fmtDate(doc.tanggal_upload)],
     ["Tgl Dokumen",fmtDate(doc.tanggal_dokumen)],
-    ["Tgl Expired",doc.tanggal_expired?fmtDate(doc.tanggal_expired)+(daysUntil(doc.tanggal_expired)>0?" ("+daysUntil(doc.tanggal_expired)+" hari lagi)":" (EXPIRED)"):"-"],
+    ["Tgl Closing",doc.tanggal_closing?fmtDate(doc.tanggal_closing)+(daysUntil(doc.tanggal_closing)>0?" ("+daysUntil(doc.tanggal_closing)+" hari lagi)":" (LEWAT)"):"-"],
+    ["Tgl ETA",doc.tanggal_eta?fmtDate(doc.tanggal_eta):"-"],
     ["Ukuran",fmtBytes(doc.ukuran_file)],
     ["Tags",(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")||"-"],
     ["Keterangan",doc.keterangan||"-"]
@@ -904,7 +918,8 @@ function EditModal({doc,onClose,onSave}){
     tipe_dokumen:doc.tipe_dokumen,status:doc.status,
     no_referensi:doc.no_referensi||"",no_invoice:doc.no_invoice||"",
     tanggal_dokumen:doc.tanggal_dokumen||"",
-    tanggal_expired:doc.tanggal_expired||"",keterangan:doc.keterangan||"",
+    tanggal_closing:doc.tanggal_closing||"",tanggal_eta:doc.tanggal_eta||"",
+    keterangan:doc.keterangan||"",
     tags:(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")
   });
   const [saving,setSaving]=useState(false);
@@ -924,8 +939,10 @@ function EditModal({doc,onClose,onSave}){
             <input className="form-input" value={form.no_invoice} onChange={e=>setForm(p=>({...p,no_invoice:e.target.value}))} placeholder="misal: INV-2026-001"/></div>
           <div className="form-group"><label className="form-label">Tgl Dokumen</label>
             <input type="date" className="form-input" value={form.tanggal_dokumen} onChange={e=>setForm(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
-          <div className="form-group"><label className="form-label">Tgl Expired</label>
-            <input type="date" className="form-input" value={form.tanggal_expired} onChange={e=>setForm(p=>({...p,tanggal_expired:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tgl Closing</label>
+            <input type="date" className="form-input" value={form.tanggal_closing} onChange={e=>setForm(p=>({...p,tanggal_closing:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tgl ETA</label>
+            <input type="date" className="form-input" value={form.tanggal_eta} onChange={e=>setForm(p=>({...p,tanggal_eta:e.target.value}))}/></div>
           <div className="form-group"><label className="form-label">Tags</label>
             <input className="form-input" value={form.tags} onChange={e=>setForm(p=>({...p,tags:e.target.value}))} placeholder="urgent, Q2-2026"/></div>
           <div className="form-group full"><label className="form-label">Keterangan</label>
