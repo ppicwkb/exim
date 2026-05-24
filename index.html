@@ -377,6 +377,8 @@ function App(){
     if(!gReady) return;
     const client=window.google.accounts.oauth2.initTokenClient({
       client_id:CLIENT_ID, scope:SCOPES,
+      prompt:"consent",
+      include_granted_scopes:false,
       callback:async(resp)=>{
         if(resp.error){ toast("Login gagal: "+resp.error,"error"); return; }
         window._gToken=resp.access_token;
