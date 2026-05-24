@@ -872,21 +872,18 @@ function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInv
 // ── UPLOAD PAGE ───────────────────────────────────────────────────────
 function InvoiceComboInput({value,onChange,allInvoices,placeholder}){
   const [open,setOpen]=useState(false);
-  const [query,setQuery]=useState(value||"");
-  const ref=useRef();
-  const suggestions=allInvoices.filter(inv=>inv.toLowerCase().includes(query.toLowerCase())&&inv!==query);
-  useEffect(()=>{ setQuery(value||""); },[value]);
-  function pick(inv){ onChange(inv); setQuery(inv); setOpen(false); }
+  const suggestions=(allInvoices||[]).filter(inv=>inv.toLowerCase().includes((value||"").toLowerCase())&&inv!==(value||""));
+  function pick(inv){ onChange(inv); setOpen(false); }
   function handleBlur(){ setTimeout(()=>setOpen(false),150); }
   return (
     <div className="autocomplete-wrap">
-      <input className="form-input" value={query}
+      <input className="form-input" value={value||""}
         placeholder={placeholder||"misal: INV#200"}
         onFocus={()=>setOpen(true)}
         onBlur={handleBlur}
-        onChange={e=>{ setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+        onChange={e=>{ onChange(e.target.value); setOpen(true); }}
       />
-      {open&&(suggestions.length>0||(query&&!allInvoices.includes(query)))&&(
+      {open&&(suggestions.length>0||(value&&!allInvoices.includes(value)))&&(
         <div className="autocomplete-dropdown">
           {suggestions.map(inv=>(
             <div key={inv} className="autocomplete-item" onMouseDown={()=>pick(inv)}>
@@ -894,9 +891,9 @@ function InvoiceComboInput({value,onChange,allInvoices,placeholder}){
               <span className="inv-count">existing</span>
             </div>
           ))}
-          {query&&!allInvoices.includes(query)&&(
-            <div className="autocomplete-item autocomplete-new" onMouseDown={()=>pick(query)}>
-              <span>✨</span><span>Buat "{query}"</span>
+          {value&&!(allInvoices||[]).includes(value)&&(
+            <div className="autocomplete-item autocomplete-new" onMouseDown={()=>pick(value)}>
+              <span>✨</span><span>Buat "{value}"</span>
               <span className="inv-count">baru</span>
             </div>
           )}
