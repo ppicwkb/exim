@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Download, Trash2, Info, CheckCircle2, Table2 } from 'lucide-react'
-import { getAllDokumen, exportToCSV } from '../sheets'
-import { GOOGLE_CONFIG } from '../config'
+import { getAllDokumen, exportToCSV } from '../src/sheets'
+import { GOOGLE_CONFIG } from '../src/config'
 
 export default function SettingsPage({ user }) {
   const [exporting, setExporting] = useState(false)

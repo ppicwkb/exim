@@ -3,9 +3,9 @@ import {
   Search, Filter, Grid, List, ExternalLink, Trash2, Eye,
   FileText, AlertTriangle, Clock, XCircle, ChevronDown, RefreshCw, FileX
 } from 'lucide-react'
-import { searchDokumen, deleteDokumenByRow } from '../sheets'
-import { deleteFileFromDrive, getFileBlob } from '../googleDrive'
-import { TIPE_DOKUMEN, STATUS_DOKUMEN, APP_CONFIG } from '../config'
+import { searchDokumen, deleteDokumenByRow } from '../src/sheets'
+import { deleteFileFromDrive, getFileBlob } from '../src/googleDrive'
+import { TIPE_DOKUMEN, STATUS_DOKUMEN, APP_CONFIG } from '../src/config'
 
 function formatBytes(b) {
   if (!b) return '-'
@@ -109,9 +109,18 @@ export default function DokumenPage({ onGoUpload }) {
   async function handleDelete(doc) {
     setDeleting(true)
     try {
+      // FIX: Hapus Drive dulu, pastu Sheets — kalau Drive fail, stop (jangan orphan metadata)
+      // Kalau Drive 404 (file dah takde), tetap proceed delete metadata Sheets
       await deleteFileFromDrive(doc.drive_file_id)
       await deleteDokumenByRow(doc._row)
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      // Kalau Drive berjaya tapi Sheets fail, cuba delete Sheets lagi
+      // Supaya takde orphan metadata
+      if (e.message?.includes('Sheets') || e.message?.includes('sheets')) {
+        try { await deleteDokumenByRow(doc._row) } catch {}
+      }
+      console.error('Delete error:', e)
+    }
     setDeleteConfirm(null)
     setDeleting(false)
     load()

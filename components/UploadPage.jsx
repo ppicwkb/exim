@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react'
 import { Upload, X, FileText, CheckCircle2, AlertCircle, CloudUpload } from 'lucide-react'
-import { TIPE_DOKUMEN, STATUS_DOKUMEN, APP_CONFIG } from '../config'
-import { uploadFileToDrive } from '../googleDrive'
-import { addDokumen } from '../sheets'
+import { TIPE_DOKUMEN, STATUS_DOKUMEN, APP_CONFIG } from '../src/config'
+import { uploadFileToDrive } from '../src/googleDrive'
+import { addDokumen } from '../src/sheets'
 
 function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -16,7 +16,7 @@ function FileItem({ file, onRemove, progress, status, error }) {
         <FileText className="w-4 h-4 text-brand-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-500 text-slate-800 truncate">{file.name}</p>
+        <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
         <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
         {progress !== null && status === 'uploading' && (
           <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -35,7 +35,8 @@ function FileItem({ file, onRemove, progress, status, error }) {
   )
 }
 
-export default function UploadPage({ onUploadDone }) {
+// FIX: Terima user prop untuk audit trail upload_oleh
+export default function UploadPage({ onUploadDone, user }) {
   const [files, setFiles]       = useState([])
   const [dragging, setDragging] = useState(false)
   const [fileStates, setFileStates] = useState({})
@@ -68,12 +69,16 @@ export default function UploadPage({ onUploadDone }) {
 
     for (const { file, id } of files) {
       setFileStates(prev => ({ ...prev, [id]: { progress: 0, status: 'uploading', error: null } }))
+      let driveFileId = null
       try {
         // 1. Upload file ke Google Drive folder
         const driveFile = await uploadFileToDrive(file, (p) => {
           setFileStates(prev => ({ ...prev, [id]: { ...prev[id], progress: p } }))
         })
+        driveFileId = driveFile.id
+
         // 2. Simpan metadata ke Google Sheets
+        // FIX: upload_oleh diisi dari user prop (audit trail)
         await addDokumen({
           nama_file:       file.name,
           tipe_dokumen:    form.tipe_dokumen,
@@ -87,11 +92,15 @@ export default function UploadPage({ onUploadDone }) {
           tipe_mime:       file.type,
           drive_file_id:   driveFile.id,
           drive_web_link:  driveFile.webViewLink,
-          upload_oleh:     '',
+          upload_oleh:     user?.email || user?.name || '',  // FIX: audit trail
         })
         setFileStates(prev => ({ ...prev, [id]: { progress: 100, status: 'done', error: null } }))
       } catch (err) {
-        setFileStates(prev => ({ ...prev, [id]: { progress: 0, status: 'error', error: err.message } }))
+        // FIX: Kalau Sheets fail selepas Drive upload, inform user supaya boleh retry
+        const errMsg = driveFileId && err.message.includes('Sheets')
+          ? `Drive OK, Sheets gagal: ${err.message}`
+          : err.message
+        setFileStates(prev => ({ ...prev, [id]: { progress: 0, status: 'error', error: errMsg } }))
       }
     }
     setUploading(false)
@@ -103,7 +112,7 @@ export default function UploadPage({ onUploadDone }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-700 text-slate-800">Upload Dokumen</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Upload Dokumen</h1>
         <p className="text-slate-500 text-sm mt-1">File → Google Drive · Metadata → Google Sheets</p>
       </div>
 
@@ -122,7 +131,7 @@ export default function UploadPage({ onUploadDone }) {
           onChange={e => addFiles(e.target.files)}
         />
         <CloudUpload className={`w-10 h-10 mx-auto mb-3 ${dragging ? 'text-brand-500' : 'text-slate-300'}`} />
-        <p className="font-600 text-slate-700 text-sm">Drag & drop file ke sini</p>
+        <p className="font-semibold text-slate-700 text-sm">Drag & drop file ke sini</p>
         <p className="text-xs text-slate-400 mt-1">atau klik untuk pilih file</p>
         <p className="text-xs text-slate-300 mt-2">PDF · Excel · Word · Image · ZIP · Maks 50 MB</p>
       </div>
@@ -142,10 +151,10 @@ export default function UploadPage({ onUploadDone }) {
 
       {/* Form metadata */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-        <h3 className="font-600 text-slate-700 text-sm">Informasi Dokumen</h3>
+        <h3 className="font-semibold text-slate-700 text-sm">Informasi Dokumen</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-600 text-slate-600 mb-1 block">Tipe Dokumen *</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">Tipe Dokumen *</label>
             <select value={form.tipe_dokumen}
               onChange={e => setForm(f => ({ ...f, tipe_dokumen: e.target.value, tanggal_expired: '' }))}
               className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300">
@@ -153,7 +162,7 @@ export default function UploadPage({ onUploadDone }) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-600 text-slate-600 mb-1 block">Status *</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">Status *</label>
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
               className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300">
               {STATUS_DOKUMEN.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -161,21 +170,21 @@ export default function UploadPage({ onUploadDone }) {
           </div>
         </div>
         <div>
-          <label className="text-xs font-600 text-slate-600 mb-1 block">No. Referensi (PO / Shipment / Kontrak)</label>
+          <label className="text-xs font-semibold text-slate-600 mb-1 block">No. Referensi (PO / Shipment / Kontrak)</label>
           <input type="text" placeholder="Contoh: SHP-2026-001"
             value={form.no_referensi} onChange={e => setForm(f => ({ ...f, no_referensi: e.target.value }))}
             className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-600 text-slate-600 mb-1 block">Tanggal Dokumen</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">Tanggal Dokumen</label>
             <input type="date" value={form.tanggal_dokumen}
               onChange={e => setForm(f => ({ ...f, tanggal_dokumen: e.target.value }))}
               className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300" />
           </div>
           {tipeDef?.hasExpiry && (
             <div>
-              <label className="text-xs font-600 text-slate-600 mb-1 block">Tanggal Expired</label>
+              <label className="text-xs font-semibold text-slate-600 mb-1 block">Tanggal Expired</label>
               <input type="date" value={form.tanggal_expired}
                 onChange={e => setForm(f => ({ ...f, tanggal_expired: e.target.value }))}
                 className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300" />
@@ -183,13 +192,13 @@ export default function UploadPage({ onUploadDone }) {
           )}
         </div>
         <div>
-          <label className="text-xs font-600 text-slate-600 mb-1 block">Tags (pisah dengan koma)</label>
+          <label className="text-xs font-semibold text-slate-600 mb-1 block">Tags (pisah dengan koma)</label>
           <input type="text" placeholder="urgent, Q1-2026, tanjung-priok"
             value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
             className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300" />
         </div>
         <div>
-          <label className="text-xs font-600 text-slate-600 mb-1 block">Keterangan</label>
+          <label className="text-xs font-semibold text-slate-600 mb-1 block">Keterangan</label>
           <textarea rows={2} placeholder="Catatan tambahan..."
             value={form.keterangan} onChange={e => setForm(f => ({ ...f, keterangan: e.target.value }))}
             className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none" />
@@ -197,7 +206,7 @@ export default function UploadPage({ onUploadDone }) {
       </div>
 
       <button onClick={handleUpload} disabled={!files.length || uploading || allDone}
-        className="mt-4 w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 text-white font-600 py-3 rounded-xl transition-all text-sm">
+        className="mt-4 w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 text-white font-semibold py-3 rounded-xl transition-all text-sm">
         {uploading ? (
           <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Mengupload...</>
         ) : allDone ? (
