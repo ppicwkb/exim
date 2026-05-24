@@ -145,7 +145,42 @@ tbody tr:hover{background:var(--surface2);}
 .spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .upload-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
-@media(max-width:768px){.sidebar{width:100%;min-height:auto;position:relative;}.main{margin-left:0;}.stats-grid{grid-template-columns:1fr 1fr;}.form-grid{grid-template-columns:1fr;}}
+/* ── MOBILE NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:200;padding:0 4px;}
+.mobile-nav-inner{display:flex;align-items:stretch;}
+.mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;cursor:pointer;color:var(--text3);font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;border:none;background:transparent;transition:color 0.15s;position:relative;}
+.mobile-nav-item.active{color:var(--accent);}
+.mobile-nav-item.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--accent);border-radius:0 0 2px 2px;}
+.mobile-nav-icon{font-size:18px;line-height:1;}
+.mobile-nav-badge{position:absolute;top:6px;right:calc(50% - 14px);background:var(--danger);color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 4px;border-radius:8px;font-weight:700;}
+/* ── MOBILE DOC CARDS ── */
+.mobile-doc-list{display:flex;flex-direction:column;gap:10px;}
+.mobile-doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.15s;}
+.mobile-doc-card:active{border-color:var(--accent);}
+.mobile-doc-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.mobile-doc-card-body{flex:1;min-width:0;}
+.mobile-doc-card-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.mobile-doc-card-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.mobile-doc-card-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.mobile-doc-card-actions{display:flex;gap:6px;justify-content:flex-end;}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .mobile-nav{display:flex;}
+  .main{margin-left:0;padding-bottom:64px;}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:10px;}
+  .content{padding:16px;}
+  .header{padding:0 16px;height:52px;}
+  .header-title{font-size:14px;}
+  .form-grid{grid-template-columns:1fr;}
+  .toolbar{gap:8px;}
+  .search-input{width:100%;}
+  .search-wrap{flex:1;}
+  .stat-value{font-size:22px;}
+  .modal{padding:20px;width:95vw;}
+  .upload-zone{padding:28px 16px;}
+  .table-wrap{overflow-x:auto;}
+  table{min-width:600px;}
+}
 </style>
 </head>
 <body>
@@ -215,10 +250,10 @@ async function gFetch(url, opts={}){
 }
 
 // ── SHEETS API ───────────────────────────────────────────────────────
-const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_expired","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags"];
+const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_expired","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags","no_invoice"];
 
 async function sheetsEnsureHeader(){
-  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:O1")}`;
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:P1")}`;
   const res=await gFetch(url);
   if(!res.values||!res.values[0]||res.values[0][0]!=="id"){
     const appendRange=encodeURIComponent(`${SHEET_NAME}!A1`);
@@ -230,7 +265,7 @@ async function sheetsEnsureHeader(){
 }
 
 async function sheetsReadAll(){
-  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A:O")}`;
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A:P")}`;
   const res=await gFetch(url);
   if(!res.values||res.values.length<2) return [];
   const [header,...rows]=res.values;
@@ -248,7 +283,7 @@ async function sheetsAppendRow(doc){
     if(c==="tags") return (doc.tags||[]).join("|");
     return doc[c]!==null&&doc[c]!==undefined?String(doc[c]):"";
   });
-  const appendRange=encodeURIComponent(`${SHEET_NAME}!A:O`);
+  const appendRange=encodeURIComponent(`${SHEET_NAME}!A:P`);
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${appendRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
     method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({values:[row]})
@@ -262,7 +297,7 @@ async function sheetsUpdateRow(docId, updates){
   const rowIdx=res.values.findIndex(r=>r[0]===docId);
   if(rowIdx<0){ toast("Dokumen tidak ditemukan di sheet","error"); return; }
   const rowNum=rowIdx+1;
-  const rowRange=encodeURIComponent(`${SHEET_NAME}!A${rowNum}:O${rowNum}`);
+  const rowRange=encodeURIComponent(`${SHEET_NAME}!A${rowNum}:P${rowNum}`);
   const rowRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}`);
   const curRow=(rowRes.values&&rowRes.values[0])||[];
   const newRow=SHEET_COLS.map((c,i)=>{
@@ -342,7 +377,7 @@ function App(){
   const [page,setPage]=useState("dashboard");
   const [docs,setDocs]=useState([]);
   const [loading,setLoading]=useState(false);
-  const [view,setView]=useState("list");
+  const [view,setView]=useState(window.innerWidth<=768?"mobile":"list");
   const [search,setSearch]=useState("");
   const [filterType,setFilterType]=useState("Semua");
   const [filterStatus,setFilterStatus]=useState("Semua");
@@ -416,7 +451,7 @@ function App(){
     });
     if(valid.length){
       setFormData(prev=>Object.keys(prev).length===0
-        ?{tipe_dokumen:guessDocType(valid[0].name),status:"Draft",no_referensi:"",tanggal_dokumen:"",tanggal_expired:"",keterangan:"",tags:""}
+        ?{tipe_dokumen:guessDocType(valid[0].name),status:"Draft",no_referensi:"",no_invoice:"",tanggal_dokumen:"",tanggal_expired:"",keterangan:"",tags:""}
         :prev
       );
     }
@@ -435,6 +470,7 @@ function App(){
           id:genId(), nama_file:f.name,
           tipe_dokumen:formData.tipe_dokumen||guessDocType(f.name),
           no_referensi:formData.no_referensi||"",
+          no_invoice:formData.no_invoice||"",
           tanggal_upload:new Date().toISOString(),
           tanggal_dokumen:formData.tanggal_dokumen||"",
           tanggal_expired:formData.tanggal_expired||"",
@@ -473,6 +509,7 @@ function App(){
       await sheetsUpdateRow(editDoc.id,{
         tipe_dokumen:data.tipe_dokumen, status:data.status,
         no_referensi:data.no_referensi||"",
+        no_invoice:data.no_invoice||"",
         tanggal_dokumen:data.tanggal_dokumen||"",
         tanggal_expired:data.tanggal_expired||"",
         keterangan:data.keterangan||"",
@@ -484,9 +521,10 @@ function App(){
   }
 
   async function exportCSV(){
-    const rows=[["ID","Nama File","Tipe","No Referensi","Status","Tgl Upload","Tgl Dokumen","Expired","Upload Oleh","Ukuran (bytes)","Keterangan","Tags","Drive Link"]];
+    const rows=[["ID","Nama File","Tipe","No Referensi","No Invoice","Status","Tgl Upload","Tgl Dokumen","Expired","Upload Oleh","Ukuran (bytes)","Keterangan","Tags","Drive Link"]];
     docs.forEach(d=>rows.push([
       d.id, d.nama_file, d.tipe_dokumen, d.no_referensi||"",
+      d.no_invoice||"",
       d.status, d.tanggal_upload, d.tanggal_dokumen||"",
       d.tanggal_expired||"", d.upload_oleh, d.ukuran_file||0,
       d.keterangan||"",
@@ -503,7 +541,7 @@ function App(){
   const expiredDocs=docs.filter(d=>{ if(!d.tanggal_expired) return false; const r=daysUntil(d.tanggal_expired); return r!==null&&r<=0; });
   const filtered=docs.filter(d=>{
     const s=search.toLowerCase();
-    const ms=!s||(d.nama_file||"").toLowerCase().includes(s)||(d.no_referensi||"").toLowerCase().includes(s)||(d.keterangan||"").toLowerCase().includes(s);
+    const ms=!s||(d.nama_file||"").toLowerCase().includes(s)||(d.no_referensi||"").toLowerCase().includes(s)||(d.no_invoice||"").toLowerCase().includes(s)||(d.keterangan||"").toLowerCase().includes(s);
     const mt=filterType==="Semua"||d.tipe_dokumen===filterType;
     const ms2=filterStatus==="Semua"||d.status===filterStatus;
     return ms&&mt&&ms2;
@@ -570,6 +608,21 @@ function App(){
       {detailDoc&&<DetailModal doc={detailDoc} onClose={()=>setDetailDoc(null)} onDelete={handleDelete} onEdit={()=>{setEditDoc(detailDoc);setDetailDoc(null);}}/>}
       {editDoc&&<EditModal doc={editDoc} onClose={()=>setEditDoc(null)} onSave={handleEdit}/>}
       <ToastContainer toasts={toasts}/>
+      <nav className="mobile-nav">
+        <div className="mobile-nav-inner">
+          {[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"upload",icon:"⬆️",label:"Upload"},{id:"dokumen",icon:"📁",label:"Dokumen"}].map(m=>(
+            <button key={m.id} className={`mobile-nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
+              <span className="mobile-nav-icon">{m.icon}</span>
+              <span>{m.label}</span>
+              {m.id==="dokumen"&&(expiringSoon.length+expiredDocs.length)>0&&<span className="mobile-nav-badge">{expiringSoon.length+expiredDocs.length}</span>}
+            </button>
+          ))}
+          <button className="mobile-nav-item" onClick={handleLogout}>
+            <span className="mobile-nav-icon">↩</span>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
@@ -684,6 +737,8 @@ function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,upload
                   </select></div>
                 <div className="form-group"><label className="form-label">No. Referensi (PO/Shipment)</label>
                   <input className="form-input" value={formData.no_referensi||""} onChange={e=>setFormData(p=>({...p,no_referensi:e.target.value}))} placeholder="misal: PO-2026-001"/></div>
+                <div className="form-group"><label className="form-label">No. Invoice</label>
+                  <input className="form-input" value={formData.no_invoice||""} onChange={e=>setFormData(p=>({...p,no_invoice:e.target.value}))} placeholder="misal: INV-2026-001"/></div>
                 <div className="form-group"><label className="form-label">Tanggal Dokumen</label>
                   <input type="date" className="form-input" value={formData.tanggal_dokumen||""} onChange={e=>setFormData(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
                 <div className="form-group"><label className="form-label">Tanggal Expired (opsional)</label>
@@ -736,6 +791,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
           <div className="view-toggle" style={{marginLeft:"auto"}}>
             <button className={`view-btn${view==="list"?" active":""}`} onClick={()=>setView("list")}>☰</button>
             <button className={`view-btn${view==="grid"?" active":""}`} onClick={()=>setView("grid")}>⊞</button>
+            <button className={`view-btn${view==="mobile"?" active":""}`} onClick={()=>setView("mobile")}>📱</button>
           </div>
         </div>
 
@@ -743,7 +799,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
           <div className="empty-state"><div className="empty-icon">📂</div><div className="empty-title">Tidak ada dokumen</div><div className="empty-sub">Coba ubah filter atau kata kunci</div></div>
         ):view==="list"?(
           <div className="table-wrap"><table>
-            <thead><tr><th>Nama File</th><th>Tipe</th><th>Referensi</th><th>Status</th><th>Upload Oleh</th><th>Tgl Upload</th><th>Ukuran</th><th></th></tr></thead>
+            <thead><tr><th>Nama File</th><th>Tipe</th><th>Referensi</th><th>No Invoice</th><th>Status</th><th>Upload Oleh</th><th>Tgl Upload</th><th>Ukuran</th><th></th></tr></thead>
             <tbody>{docs.map(d=>(
               <tr key={d.id} style={{cursor:"pointer"}} onClick={()=>onDetail(d)}>
                 <td><div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -753,6 +809,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
                 </div></td>
                 <td><span className="badge badge-type">{d.tipe_dokumen}</span></td>
                 <td style={{color:"var(--text2)",fontSize:13}}>{d.no_referensi||"-"}</td>
+                <td style={{color:"var(--text2)",fontSize:13,fontFamily:"JetBrains Mono"}}>{d.no_invoice||"-"}</td>
                 <td>{statusBadge(d.status)}&nbsp;{expBadge(d)}</td>
                 <td style={{color:"var(--text3)",fontSize:12}}>{d.upload_oleh}</td>
                 <td style={{color:"var(--text2)",fontSize:12,fontFamily:"JetBrains Mono"}}>{fmtDate(d.tanggal_upload)}</td>
@@ -767,18 +824,42 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
               </tr>
             ))}</tbody>
           </table></div>
-        ):(
+        ):view==="grid"?(
           <div className="doc-grid">{docs.map(d=>(
             <div key={d.id} className="doc-card" onClick={()=>onDetail(d)}>
               <div className="doc-card-icon"><FileIcon name={d.nama_file} size={24}/></div>
               <div className="doc-card-name">{d.nama_file}</div>
               <div className="doc-card-meta">{d.upload_oleh} · {fmtDate(d.tanggal_upload)}</div>
+              {d.no_invoice&&<div className="doc-card-meta" style={{color:"var(--accent2)"}}>INV: {d.no_invoice}</div>}
               <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
                 <span className="badge badge-type">{d.tipe_dokumen}</span>
                 {statusBadge(d.status)}{expBadge(d)}
               </div>
               <div className="doc-card-actions" onClick={e=>e.stopPropagation()}>
                 <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">↗ Drive</a>
+                <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+              </div>
+            </div>
+          ))}</div>
+        ):(
+          <div className="mobile-doc-list">{docs.map(d=>(
+            <div key={d.id} className="mobile-doc-card" onClick={()=>onDetail(d)}>
+              <div className="mobile-doc-card-top">
+                <div className="file-ext" style={{width:40,height:40,borderRadius:8,background:"rgba(0,212,170,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"JetBrains Mono",fontSize:9,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",flexShrink:0}}>{getExt(d.nama_file)}</div>
+                <div className="mobile-doc-card-body">
+                  <div className="mobile-doc-card-name">{d.nama_file}</div>
+                  <div className="mobile-doc-card-meta">{fmtDate(d.tanggal_upload)} · {fmtBytes(d.ukuran_file)}</div>
+                </div>
+              </div>
+              <div className="mobile-doc-card-badges">
+                <span className="badge badge-type">{d.tipe_dokumen}</span>
+                {statusBadge(d.status)}{expBadge(d)}
+                {d.no_invoice&&<span className="badge" style={{background:"rgba(0,153,255,0.12)",color:"var(--accent2)"}}>{d.no_invoice}</span>}
+                {d.no_referensi&&<span className="badge" style={{background:"rgba(255,255,255,0.05)",color:"var(--text3)"}}>{d.no_referensi}</span>}
+              </div>
+              <div className="mobile-doc-card-actions" onClick={e=>e.stopPropagation()}>
+                <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">↗ Drive</a>
+                <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(d)}>✏️</button>
                 <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
               </div>
             </div>
@@ -793,6 +874,7 @@ function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilt
 function DetailModal({doc,onClose,onDelete,onEdit}){
   const rows=[
     ["Nama File",doc.nama_file],["Tipe",doc.tipe_dokumen],["No Referensi",doc.no_referensi||"-"],
+    ["No Invoice",doc.no_invoice||"-"],
     ["Status",doc.status],["Upload Oleh",doc.upload_oleh],["Tgl Upload",fmtDate(doc.tanggal_upload)],
     ["Tgl Dokumen",fmtDate(doc.tanggal_dokumen)],
     ["Tgl Expired",doc.tanggal_expired?fmtDate(doc.tanggal_expired)+(daysUntil(doc.tanggal_expired)>0?" ("+daysUntil(doc.tanggal_expired)+" hari lagi)":" (EXPIRED)"):"-"],
@@ -820,7 +902,8 @@ function DetailModal({doc,onClose,onDelete,onEdit}){
 function EditModal({doc,onClose,onSave}){
   const [form,setForm]=useState({
     tipe_dokumen:doc.tipe_dokumen,status:doc.status,
-    no_referensi:doc.no_referensi||"",tanggal_dokumen:doc.tanggal_dokumen||"",
+    no_referensi:doc.no_referensi||"",no_invoice:doc.no_invoice||"",
+    tanggal_dokumen:doc.tanggal_dokumen||"",
     tanggal_expired:doc.tanggal_expired||"",keterangan:doc.keterangan||"",
     tags:(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")
   });
@@ -837,6 +920,8 @@ function EditModal({doc,onClose,onSave}){
             <select className="form-select" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>{DOC_STATUS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div className="form-group"><label className="form-label">No Referensi</label>
             <input className="form-input" value={form.no_referensi} onChange={e=>setForm(p=>({...p,no_referensi:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">No Invoice</label>
+            <input className="form-input" value={form.no_invoice} onChange={e=>setForm(p=>({...p,no_invoice:e.target.value}))} placeholder="misal: INV-2026-001"/></div>
           <div className="form-group"><label className="form-label">Tgl Dokumen</label>
             <input type="date" className="form-input" value={form.tanggal_dokumen} onChange={e=>setForm(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
           <div className="form-group"><label className="form-label">Tgl Expired</label>
