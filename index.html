@@ -1,17 +1,850 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DMS Export-Import</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DMS Export-Import</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0c0f;--surface:#111318;--surface2:#181c23;--border:#1e2330;--border2:#252c3a;--accent:#00d4aa;--accent2:#0099ff;--warn:#ff6b35;--danger:#ff3d5a;--success:#00d4aa;--text:#e8ecf4;--text2:#8892a4;--text3:#4a5568;--gold:#f5c842;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:var(--surface);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.logo-text{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-0.5px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto;}
+.nav-section-title{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text3);letter-spacing:2px;text-transform:uppercase;padding:8px 10px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:13.5px;color:var(--text2);margin-bottom:2px;border:1px solid transparent;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(0,212,170,0.1);color:var(--accent);border-color:rgba(0,212,170,0.2);}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:10px;font-weight:600;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;}
+.header-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;letter-spacing:-0.3px;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg);}
+.content{padding:28px;flex:1;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.stat-card:hover{border-color:var(--border2);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.accent::before{background:var(--accent);}
+.stat-card.blue::before{background:var(--accent2);}
+.stat-card.warn::before{background:var(--warn);}
+.stat-card.danger::before{background:var(--danger);}
+.stat-label{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text);line-height:1;}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:6px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);}
+.upload-zone{background:var(--surface);border:2px dashed var(--border2);border-radius:14px;padding:40px 28px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:24px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(0,212,170,0.04);}
+.upload-icon{font-size:36px;margin-bottom:12px;}
+.upload-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;}
+.upload-sub{font-size:13px;color:var(--text2);}
+.upload-formats{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);margin-top:8px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.form-input,.form-select,.form-textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13.5px;outline:none;transition:border-color 0.15s;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:72px;}
+.file-preview-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.file-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.file-ext{width:36px;height:36px;border-radius:6px;background:rgba(0,212,170,0.12);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;flex-shrink:0;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-size{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.file-remove{width:24px;height:24px;border-radius:50%;background:transparent;border:1px solid var(--border2);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.15s;flex-shrink:0;}
+.file-remove:hover{background:var(--danger);border-color:var(--danger);color:#fff;}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;font-family:'Instrument Sans',sans-serif;white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--accent);color:var(--bg);}
+.btn-primary:hover{background:#00bfa0;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:#e02040;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.search-wrap{position:relative;}
+.search-input{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 12px 8px 36px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13.5px;outline:none;width:240px;transition:border-color 0.15s;}
+.search-input:focus{border-color:var(--accent);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none;}
+.select-filter{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:13px;font-family:'Instrument Sans',sans-serif;outline:none;cursor:pointer;transition:border-color 0.15s;}
+.select-filter:focus{border-color:var(--accent);}
+.view-toggle{display:flex;gap:4px;}
+.view-btn{width:32px;height:32px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.15s;}
+.view-btn.active{background:var(--accent);border-color:var(--accent);color:var(--bg);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead{background:var(--surface2);}
+th{padding:11px 14px;text-align:left;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:12px 14px;font-size:13.5px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background 0.1s;}
+tbody tr:hover{background:var(--surface2);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.badge-final{background:rgba(0,212,170,0.15);color:var(--accent);}
+.badge-draft{background:rgba(255,107,53,0.15);color:var(--warn);}
+.badge-expired{background:rgba(255,61,90,0.15);color:var(--danger);}
+.badge-cancelled{background:rgba(74,85,104,0.15);color:var(--text3);}
+.badge-type{background:rgba(0,153,255,0.12);color:var(--accent2);font-size:10px;padding:2px 7px;}
+.badge-expiring{background:rgba(245,200,66,0.15);color:var(--gold);}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
+.doc-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+.doc-card-icon{width:48px;height:48px;border-radius:10px;background:rgba(0,212,170,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;}
+.doc-card-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.doc-card-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.doc-card-actions{display:flex;gap:6px;margin-top:12px;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.4;}
+.empty-title{font-family:'Syne',sans-serif;font-size:16px;color:var(--text2);margin-bottom:6px;}
+.empty-sub{font-size:13px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:520px;max-width:90vw;max-height:85vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,0.5);}
+.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:20px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:slideIn 0.2s ease;max-width:320px;}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast-success{border-left:3px solid var(--success);}
+.toast-error{border-left:3px solid var(--danger);}
+.toast-warn{border-left:3px solid var(--gold);}
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 20% 20%,rgba(0,212,170,0.06) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 80% 80%,rgba(0,153,255,0.05) 0%,transparent 70%);}
+.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:44px 40px;width:420px;max-width:90vw;text-align:center;position:relative;z-index:1;box-shadow:0 32px 80px rgba(0,0,0,0.4);}
+.login-logo-big{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent);margin-bottom:4px;letter-spacing:-1px;}
+.login-logo-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
+.login-desc{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:32px;}
+.google-btn{width:100%;background:#fff;color:#1a1a2e;border:none;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.15s;font-family:'Instrument Sans',sans-serif;}
+.google-btn:hover{background:#f0f0f0;transform:translateY(-1px);}
+.login-features{display:flex;gap:16px;margin-top:28px;justify-content:center;}
+.login-feature{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sidebar-user-info{flex:1;min-width:0;}
+.sidebar-user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-user-email{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;}
+.detail-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;}
+.detail-label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);width:120px;flex-shrink:0;padding-top:2px;}
+.detail-value{font-size:13.5px;color:var(--text);flex:1;}
+.notif-banner{background:rgba(255,61,90,0.08);border:1px solid rgba(255,61,90,0.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;font-size:13.5px;}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.upload-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
+@media(max-width:768px){.sidebar{width:100%;min-height:auto;position:relative;}.main{margin-left:0;}.stats-grid{grid-template-columns:1fr 1fr;}.form-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── CONFIG ──────────────────────────────────────────────────────────
+const CLIENT_ID   = "530281398554-bhhbsd9o989mt6b52k4r88uodnvdf98j.apps.googleusercontent.com";
+const FOLDER_ID   = "1JozsXF_7ooZYRcHzjAk8YQllfAnS03fW";
+const SHEET_ID    = "1db0D1yTN2w7kv8N2mOG-p6mSk-ZmsuDqbcoXdagEoKE";
+const SHEET_NAME  = "Dokumen";
+const SCOPES      = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
+const MIME_ACCEPT = ".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.zip";
+
+const DOC_TYPES  = ["Invoice","Packing List","Bill of Lading","AWB","PIB","PEB","COO","SKA","Letter of Credit","Phytosanitary","Fumigasi","Lainnya"];
+const DOC_STATUS = ["Draft","Final","Expired","Dibatalkan"];
+
+// ── HELPERS ─────────────────────────────────────────────────────────
+function genId(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
+function fmtBytes(b){ if(!b||b<1024) return (b||0)+"B"; if(b<1048576) return (b/1024).toFixed(1)+"KB"; return (b/1048576).toFixed(1)+"MB"; }
+function fmtDate(d){ if(!d) return "-"; return new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
+function getExt(name){ return (name||"").split(".").pop().toLowerCase(); }
+function getMime(f){ return f.type||"application/octet-stream"; }
+function daysUntil(dateStr){ if(!dateStr) return null; return Math.ceil((new Date(dateStr)-new Date())/(864e5)); }
+function guessDocType(name){
+  const n=(name||"").toLowerCase();
+  if(n.includes("invoice")||n.includes("inv_")||n.includes("_inv")) return "Invoice";
+  if(n.includes("packing")||n.includes("_pl_")||n.startsWith("pl")) return "Packing List";
+  if(n.includes("bl")||n.includes("bill")||n.includes("lading")) return "Bill of Lading";
+  if(n.includes("awb")) return "AWB";
+  if(n.includes("pib")) return "PIB";
+  if(n.includes("peb")) return "PEB";
+  if(n.includes("coo")||n.includes("origin")) return "COO";
+  if(n.includes("ska")) return "SKA";
+  if(n.includes("lc_")||n.includes("_lc")||n.includes("letter")) return "Letter of Credit";
+  if(n.includes("phyto")) return "Phytosanitary";
+  if(n.includes("fumig")) return "Fumigasi";
+  return "Lainnya";
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────
+let _toastSetter = null;
+function useToasts(){ const [toasts,setToasts]=useState([]); _toastSetter=setToasts; return toasts; }
+function toast(msg,type="success"){
+  if(!_toastSetter) return;
+  const id=genId();
+  _toastSetter(t=>[...t,{id,msg,type}]);
+  setTimeout(()=>_toastSetter(t=>t.filter(x=>x.id!==id)),4000);
+}
+
+// ── GOOGLE APIS ──────────────────────────────────────────────────────
+function getToken(){ return window._gToken||null; }
+
+async function gFetch(url, opts={}){
+  const tk=getToken();
+  if(!tk) throw new Error("Belum login");
+  const res=await fetch(url,{...opts,headers:{Authorization:"Bearer "+tk,...(opts.headers||{})}});
+  if(res.status===401) throw new Error("Sesi expired, silakan login ulang");
+  if(res.status===204) return {};
+  if(!res.ok){
+    let msg="API error "+res.status;
+    try{ const e=await res.json(); msg=e?.error?.message||msg; }catch(_){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+// ── SHEETS API ───────────────────────────────────────────────────────
+const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_expired","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags"];
+
+async function sheetsEnsureHeader(){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:Z1`;
+  const res=await gFetch(url);
+  if(!res.values||!res.values[0]||res.values[0][0]!=="id"){
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:append?valueInputOption=RAW`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({values:[SHEET_COLS]})
+    });
+  }
+}
+
+async function sheetsReadAll(){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:O`;
+  const res=await gFetch(url);
+  if(!res.values||res.values.length<2) return [];
+  const [header,...rows]=res.values;
+  return rows.map(r=>{
+    const obj={};
+    header.forEach((h,i)=>obj[h]=r[i]||"");
+    obj.ukuran_file=parseInt(obj.ukuran_file)||0;
+    obj.tags=obj.tags?obj.tags.split("|").filter(Boolean):[];
+    return obj;
+  }).filter(r=>r.id);
+}
+
+async function sheetsAppendRow(doc){
+  const row=SHEET_COLS.map(c=>{
+    if(c==="tags") return (doc.tags||[]).join("|");
+    return doc[c]!==null&&doc[c]!==undefined?String(doc[c]):"";
+  });
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:O:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({values:[row]})
+  });
+}
+
+async function sheetsUpdateRow(docId, updates){
+  // find row number
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:A`;
+  const res=await gFetch(url);
+  if(!res.values) return;
+  const rowIdx=res.values.findIndex(r=>r[0]===docId);
+  if(rowIdx<0) return;
+  const rowNum=rowIdx+1;
+  // read current row
+  const rowRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowNum}:O${rowNum}`);
+  const curRow=(rowRes.values&&rowRes.values[0])||[];
+  const newRow=SHEET_COLS.map((c,i)=>{
+    if(c==="tags") return (updates.tags||[]).join("|");
+    if(c in updates) return updates[c]!==null&&updates[c]!==undefined?String(updates[c]):"";
+    return curRow[i]||"";
+  });
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowNum}:O${rowNum}?valueInputOption=RAW`,{
+    method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({values:[newRow]})
+  });
+}
+
+async function sheetsDeleteRow(docId){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:A`;
+  const res=await gFetch(url);
+  if(!res.values) return;
+  const rowIdx=res.values.findIndex(r=>r[0]===docId);
+  if(rowIdx<0) return;
+  // get sheet gid
+  const metaRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets(properties)`);
+  const sheet=metaRes.sheets?.find(s=>s.properties.title===SHEET_NAME);
+  const sheetGid=sheet?.properties?.sheetId||0;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sheetGid,dimension:"ROWS",startIndex:rowIdx,endIndex:rowIdx+1}}}]})
+  });
+}
+
+// ── DRIVE API ────────────────────────────────────────────────────────
+async function uploadToDrive(file, onProgress){
+  const tk=getToken();
+  const meta={name:file.name,parents:[FOLDER_ID]};
+  const initRes=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",{
+    method:"POST",
+    headers:{Authorization:"Bearer "+tk,"Content-Type":"application/json","X-Upload-Content-Type":getMime(file),"X-Upload-Content-Length":file.size},
+    body:JSON.stringify(meta)
+  });
+  if(!initRes.ok) throw new Error("Init upload gagal: "+initRes.status);
+  const uploadUrl=initRes.headers.get("Location");
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open("PUT",uploadUrl);
+    xhr.setRequestHeader("Content-Type",getMime(file));
+    xhr.upload.onprogress=e=>{ if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100)); };
+    xhr.onload=()=>{ if(xhr.status===200||xhr.status===201) resolve(JSON.parse(xhr.responseText)); else reject(new Error("Upload gagal: "+xhr.status)); };
+    xhr.onerror=()=>reject(new Error("Network error"));
+    xhr.send(file);
+  });
+}
+
+async function deleteDriveFile(fileId){
+  const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`,{
+    method:"DELETE",headers:{Authorization:"Bearer "+getToken()}
+  });
+  if(!res.ok&&res.status!==404) throw new Error("Gagal hapus dari Drive: "+res.status);
+}
+
+// ── FILE ICON ─────────────────────────────────────────────────────────
+function FileIcon({name,size=20}){
+  const map={pdf:"📄",xlsx:"📊",xls:"📊",docx:"📝",doc:"📝",jpg:"🖼️",jpeg:"🖼️",png:"🖼️",zip:"📦"};
+  return <span style={{fontSize:size}}>{map[getExt(name)]||"📋"}</span>;
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────
+function App(){
+  const [user,setUser]=useState(null);
+  const [gReady,setGReady]=useState(false);
+  const [page,setPage]=useState("dashboard");
+  const [docs,setDocs]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [view,setView]=useState("list");
+  const [search,setSearch]=useState("");
+  const [filterType,setFilterType]=useState("Semua");
+  const [filterStatus,setFilterStatus]=useState("Semua");
+  const [pendingFiles,setPendingFiles]=useState([]);
+  const [formData,setFormData]=useState({});
+  const [uploading,setUploading]=useState(false);
+  const [uploadProgress,setUploadProgress]=useState({});
+  const [detailDoc,setDetailDoc]=useState(null);
+  const [editDoc,setEditDoc]=useState(null);
+  const [dragging,setDragging]=useState(false);
+  const fileInputRef=useRef();
+  const toasts=useToasts();
+
+  useEffect(()=>{
+    const chk=setInterval(()=>{ if(window.google?.accounts){ setGReady(true); clearInterval(chk); }},200);
+    return ()=>clearInterval(chk);
+  },[]);
+
+  const loadDocs=useCallback(async()=>{
+    setLoading(true);
+    try{
+      await sheetsEnsureHeader();
+      const rows=await sheetsReadAll();
+      setDocs(rows);
+    }catch(e){ toast("Gagal load dokumen: "+e.message,"error"); }
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{ if(user) loadDocs(); },[user,loadDocs]);
+
+  function handleGoogleLogin(){
+    if(!gReady) return;
+    const client=window.google.accounts.oauth2.initTokenClient({
+      client_id:CLIENT_ID, scope:SCOPES,
+      callback:async(resp)=>{
+        if(resp.error){ toast("Login gagal: "+resp.error,"error"); return; }
+        window._gToken=resp.access_token;
+        try{
+          const uRes=await fetch("https://www.googleapis.com/oauth2/v2/userinfo",{headers:{Authorization:"Bearer "+resp.access_token}});
+          const uData=await uRes.json();
+          setUser(uData);
+          toast("Selamat datang, "+uData.given_name+"!");
+        }catch(e){ toast("Gagal ambil profil","error"); }
+      }
+    });
+    client.requestAccessToken();
+  }
+
+  function handleLogout(){
+    if(window._gToken&&window.google?.accounts?.oauth2) window.google.accounts.oauth2.revoke(window._gToken,()=>{});
+    window._gToken=null;
+    setUser(null); setDocs([]); setPendingFiles([]); setFormData({});
+    toast("Logout berhasil","warn");
+  }
+
+  // drag drop
+  function handleDragOver(e){ e.preventDefault(); setDragging(true); }
+  function handleDragLeave(){ setDragging(false); }
+  function handleDrop(e){ e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files)); }
+  function handleFileInput(e){ addFiles(Array.from(e.target.files)); }
+
+  function addFiles(files){
+    const valid=files.filter(f=>f.size<=50*1024*1024);
+    if(valid.length<files.length) toast("Beberapa file >50MB diabaikan","warn");
+    setPendingFiles(p=>{
+      const combined=[...p,...valid];
+      if(combined.length>10){ toast("Maksimal 10 file per sesi","warn"); return combined.slice(0,10); }
+      return combined;
+    });
+    if(valid.length){
+      setFormData(prev=>Object.keys(prev).length===0
+        ?{tipe_dokumen:guessDocType(valid[0].name),status:"Draft",no_referensi:"",tanggal_dokumen:"",tanggal_expired:"",keterangan:"",tags:""}
+        :prev
+      );
+    }
+  }
+  function removeFile(idx){ setPendingFiles(p=>p.filter((_,i)=>i!==idx)); }
+
+  async function handleUpload(){
+    if(!pendingFiles.length||!user) return;
+    if(!getToken()){ toast("Sesi expired, login ulang","error"); return; }
+    setUploading(true);
+    const tipe=formData.tipe_dokumen||"Lainnya";
+    try{
+      for(let i=0;i<pendingFiles.length;i++){
+        const f=pendingFiles[i];
+        const driveFile=await uploadToDrive(f,pct=>setUploadProgress(p=>({...p,[f.name]:pct})));
+        const doc={
+          id:genId(), nama_file:f.name, tipe_dokumen:tipe,
+          no_referensi:formData.no_referensi||"",
+          tanggal_upload:new Date().toISOString(),
+          tanggal_dokumen:formData.tanggal_dokumen||"",
+          tanggal_expired:formData.tanggal_expired||"",
+          status:formData.status||"Draft",
+          ukuran_file:f.size, tipe_mime:getMime(f),
+          drive_file_id:driveFile.id,
+          drive_web_link:driveFile.webViewLink||`https://drive.google.com/file/d/${driveFile.id}/view`,
+          upload_oleh:user.email,
+          keterangan:formData.keterangan||"",
+          tags:formData.tags?formData.tags.split(",").map(t=>t.trim()).filter(Boolean):[]
+        };
+        await sheetsAppendRow(doc);
+      }
+      toast(`${pendingFiles.length} file berhasil diupload!`);
+      setPendingFiles([]); setUploadProgress({}); setFormData({});
+      if(fileInputRef.current) fileInputRef.current.value="";
+      await loadDocs(); setPage("dokumen");
+    }catch(e){ toast("Upload gagal: "+e.message,"error"); }
+    setUploading(false);
+  }
+
+  async function handleDelete(doc){
+    if(!confirm(`Hapus "${doc.nama_file}"? File akan dihapus dari Drive & database.`)) return;
+    try{
+      await deleteDriveFile(doc.drive_file_id);
+      await sheetsDeleteRow(doc.id);
+      await loadDocs();
+      setDetailDoc(null);
+      toast("Dokumen berhasil dihapus");
+    }catch(e){ toast("Gagal hapus: "+e.message,"error"); }
+  }
+
+  async function handleEdit(data){
+    if(!editDoc) return;
+    try{
+      await sheetsUpdateRow(editDoc.id,{
+        tipe_dokumen:data.tipe_dokumen, status:data.status,
+        no_referensi:data.no_referensi||"",
+        tanggal_dokumen:data.tanggal_dokumen||"",
+        tanggal_expired:data.tanggal_expired||"",
+        keterangan:data.keterangan||"",
+        tags:data.tags?data.tags.split(",").map(t=>t.trim()).filter(Boolean):[]
+      });
+      await loadDocs(); setEditDoc(null);
+      toast("Metadata berhasil diupdate");
+    }catch(e){ toast("Gagal update: "+e.message,"error"); }
+  }
+
+  async function exportCSV(){
+    const rows=[["ID","Nama File","Tipe","No Referensi","Status","Tgl Upload","Expired","Upload Oleh","Drive Link"]];
+    docs.forEach(d=>rows.push([d.id,d.nama_file,d.tipe_dokumen,d.no_referensi,d.status,d.tanggal_upload,d.tanggal_expired||"",d.upload_oleh,d.drive_web_link]));
+    const csv=rows.map(r=>r.map(c=>'"'+(c+"").replace(/"/g,'""')+'"').join(",")).join("\n");
+    const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="DMS_Export.csv"; a.click();
+    toast("CSV berhasil diexport");
+  }
+
+  const expiringSoon=docs.filter(d=>{ const r=daysUntil(d.tanggal_expired); return r!==null&&r<=30&&r>0; });
+  const expiredDocs=docs.filter(d=>{ const r=daysUntil(d.tanggal_expired); return r!==null&&r<=0; });
+  const filtered=docs.filter(d=>{
+    const s=search.toLowerCase();
+    const ms=!s||(d.nama_file||"").toLowerCase().includes(s)||(d.no_referensi||"").toLowerCase().includes(s)||(d.keterangan||"").toLowerCase().includes(s);
+    const mt=filterType==="Semua"||d.tipe_dokumen===filterType;
+    const ms2=filterStatus==="Semua"||d.status===filterStatus;
+    return ms&&mt&&ms2;
+  });
+
+  if(!user) return (
+    <div className="login-screen">
+      <div className="login-bg"/>
+      <div className="login-card">
+        <div className="login-logo-big">DMS</div>
+        <div className="login-logo-sub">Export · Import · Divisi Logistik</div>
+        <p className="login-desc">Sistem manajemen dokumen terpusat. Semua file tersimpan di Google Drive & database bersama yang dapat diakses seluruh tim.</p>
+        <button className="google-btn" onClick={handleGoogleLogin} disabled={!gReady}>
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+          {gReady?"Login dengan Google":"Memuat..."}
+        </button>
+        <div className="login-features">
+          <span className="login-feature">☁️ Drive Terpusat</span>
+          <span className="login-feature">👥 Multi-User</span>
+          <span className="login-feature">🔒 Aman</span>
+        </div>
+      </div>
+      <ToastContainer toasts={toasts}/>
+    </div>
+  );
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-text">DMS</div>
+          <div className="logo-sub">Export · Import</div>
+        </div>
+        <nav className="sidebar-nav">
+          <div className="nav-section-title">Menu</div>
+          {[{id:"dashboard",label:"Dashboard",icon:"📊"},{id:"upload",label:"Upload Dokumen",icon:"⬆️"},{id:"dokumen",label:"Semua Dokumen",icon:"📁"}].map(m=>(
+            <div key={m.id} className={`nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
+              <span>{m.icon}</span>{m.label}
+              {m.id==="dokumen"&&(expiringSoon.length+expiredDocs.length)>0&&<span className="nav-badge">{expiringSoon.length+expiredDocs.length}</span>}
+            </div>
+          ))}
+          <div style={{marginTop:16,padding:"0 10px"}}>
+            <button className="btn btn-ghost btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={loadDocs}>
+              {loading?<><div className="spinner"/>&nbsp;Sync...</>:"🔄 Refresh"}
+            </button>
+          </div>
+        </nav>
+        <div className="sidebar-user">
+          <div className="avatar">{(user.given_name||"U")[0]}</div>
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-name">{user.name||user.given_name}</div>
+            <div className="sidebar-user-email">{user.email}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={handleLogout} title="Logout">↩</button>
+        </div>
+      </aside>
+
+      <main className="main">
+        {page==="dashboard"&&<DashboardPage docs={docs} expiringSoon={expiringSoon} expiredDocs={expiredDocs} loading={loading} onNav={setPage}/>}
+        {page==="upload"&&<UploadPage pendingFiles={pendingFiles} formData={formData} setFormData={setFormData} dragging={dragging} uploading={uploading} uploadProgress={uploadProgress} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileInput={handleFileInput} onRemove={removeFile} onUpload={handleUpload} onCancel={()=>{setPendingFiles([]);setFormData({});}} fileInputRef={fileInputRef} user={user}/>}
+        {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} expiringSoon={expiringSoon} expiredDocs={expiredDocs} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
+      </main>
+
+      {detailDoc&&<DetailModal doc={detailDoc} onClose={()=>setDetailDoc(null)} onDelete={handleDelete} onEdit={()=>{setEditDoc(detailDoc);setDetailDoc(null);}}/>}
+      {editDoc&&<EditModal doc={editDoc} onClose={()=>setEditDoc(null)} onSave={handleEdit}/>}
+      <ToastContainer toasts={toasts}/>
+    </div>
+  );
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+function DashboardPage({docs,expiringSoon,expiredDocs,loading,onNav}){
+  const totalSize=docs.reduce((a,d)=>a+(parseInt(d.ukuran_file)||0),0);
+  const finals=docs.filter(d=>d.status==="Final").length;
+  const byType=DOC_TYPES.reduce((a,t)=>({...a,[t]:docs.filter(d=>d.tipe_dokumen===t).length}),{});
+  // upload oleh stats
+  const byUser={};
+  docs.forEach(d=>{ byUser[d.upload_oleh]=(byUser[d.upload_oleh]||0)+1; });
+
+  return (
+    <>
+      <div className="header">
+        <div className="header-title">Dashboard</div>
+        <div className="header-right">
+          {loading&&<div className="spinner"/>}
+          <button className="btn btn-primary btn-sm" onClick={()=>onNav("upload")}>⬆️ Upload</button>
+        </div>
+      </div>
+      <div className="content">
+        {expiredDocs.length>0&&<div className="notif-banner"><span style={{fontSize:18}}>🚨</span><span><strong>{expiredDocs.length} dokumen</strong> sudah expired.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
+        {expiringSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginTop:expiredDocs.length?-8:0}}><span style={{fontSize:18}}>⚠️</span><span><strong>{expiringSoon.length} dokumen</strong> akan expired dalam 30 hari.</span></div>}
+
+        <div className="stats-grid">
+          <div className="stat-card accent"><div className="stat-label">Total Dokumen</div><div className="stat-value">{docs.length}</div><div className="stat-sub">Semua tipe</div></div>
+          <div className="stat-card blue"><div className="stat-label">Final</div><div className="stat-value">{finals}</div><div className="stat-sub">{docs.length?Math.round(finals/docs.length*100):0}% dari total</div></div>
+          <div className="stat-card warn"><div className="stat-label">Akan Expired</div><div className="stat-value">{expiringSoon.length}</div><div className="stat-sub">Dalam 30 hari</div></div>
+          <div className="stat-card danger"><div className="stat-label">Total Ukuran</div><div className="stat-value">{fmtBytes(totalSize)}</div><div className="stat-sub">Di Google Drive</div></div>
+        </div>
+
+        <div className="section-header"><div className="section-title">Dokumen per Tipe</div><button className="btn btn-ghost btn-sm" onClick={()=>onNav("dokumen")}>Lihat Semua →</button></div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:10,marginBottom:28}}>
+          {Object.entries(byType).filter(([,c])=>c>0).map(([t,c])=>(
+            <div key={t} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",cursor:"pointer"}} onClick={()=>onNav("dokumen")}>
+              <div style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)",marginBottom:6,textTransform:"uppercase"}}>{t}</div>
+              <div style={{fontFamily:"Syne",fontSize:24,fontWeight:800}}>{c}</div>
+            </div>
+          ))}
+          {docs.length===0&&!loading&&<div style={{gridColumn:"1/-1"}} className="empty-state"><div className="empty-icon">📂</div><div className="empty-title">Belum ada dokumen</div><div className="empty-sub">Upload dokumen pertama</div></div>}
+        </div>
+
+        {Object.keys(byUser).length>0&&(
+          <>
+            <div className="section-header"><div className="section-title">Upload per User</div></div>
+            <div className="table-wrap">
+              <table><thead><tr><th>User</th><th>Jumlah Dokumen</th></tr></thead>
+              <tbody>{Object.entries(byUser).sort((a,b)=>b[1]-a[1]).map(([u,c])=>(
+                <tr key={u}><td style={{color:"var(--text2)"}}>{u}</td><td><span className="badge badge-type">{c} file</span></td></tr>
+              ))}</tbody></table>
+            </div>
+          </>
+        )}
+
+        {expiringSoon.length>0&&(
+          <>
+            <div className="section-header" style={{marginTop:28}}><div className="section-title">⚠️ Segera Expired</div></div>
+            <div className="table-wrap"><table><thead><tr><th>Dokumen</th><th>Tipe</th><th>Expired</th><th>Sisa</th><th>Upload Oleh</th></tr></thead>
+            <tbody>{expiringSoon.map(d=>(
+              <tr key={d.id}><td>{d.nama_file}</td><td><span className="badge badge-type">{d.tipe_dokumen}</span></td><td>{fmtDate(d.tanggal_expired)}</td><td><span className="badge badge-expiring">{daysUntil(d.tanggal_expired)} hari</span></td><td style={{fontSize:12,color:"var(--text3)"}}>{d.upload_oleh}</td></tr>
+            ))}</tbody></table></div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── UPLOAD PAGE ───────────────────────────────────────────────────────
+function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,uploadProgress,onDragOver,onDragLeave,onDrop,onFileInput,onRemove,onUpload,onCancel,fileInputRef,user}){
+  return (
+    <>
+      <div className="header"><div className="header-title">Upload Dokumen</div></div>
+      <div className="content">
+        <input ref={fileInputRef} type="file" multiple accept={MIME_ACCEPT} style={{display:"none"}} onChange={onFileInput}/>
+        <div className={`upload-zone${dragging?" drag":""}`} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={()=>fileInputRef.current.click()}>
+          <div className="upload-icon">☁️</div>
+          <div className="upload-title">Drag & Drop File di Sini</div>
+          <div className="upload-sub">atau klik untuk pilih file · maks 10 file, 50MB/file</div>
+          <div className="upload-formats">PDF · XLSX · DOCX · JPG · PNG · ZIP</div>
+        </div>
+
+        {pendingFiles.length>0&&(
+          <>
+            <div className="section-header"><div className="section-title">File Terpilih ({pendingFiles.length})</div></div>
+            <div className="file-preview-list" style={{marginBottom:20}}>
+              {pendingFiles.map((f,i)=>(
+                <div key={i} className="file-item">
+                  <div className="file-ext">{getExt(f.name)}</div>
+                  <div className="file-info">
+                    <div className="file-name">{f.name}</div>
+                    <div className="file-size">{fmtBytes(f.size)}</div>
+                    {uploadProgress[f.name]!==undefined&&<div className="progress-bar"><div className="progress-fill" style={{width:uploadProgress[f.name]+"%"}}/></div>}
+                  </div>
+                  <button className="file-remove" onClick={()=>onRemove(i)} disabled={uploading}>✕</button>
+                </div>
+              ))}
+            </div>
+
+            <div className="section-header"><div className="section-title">Metadata Dokumen</div></div>
+            <div className="upload-section">
+              <div className="form-grid">
+                <div className="form-group"><label className="form-label">Tipe Dokumen</label>
+                  <select className="form-select" value={formData.tipe_dokumen||"Lainnya"} onChange={e=>setFormData(p=>({...p,tipe_dokumen:e.target.value}))}>
+                    {DOC_TYPES.map(t=><option key={t}>{t}</option>)}
+                  </select></div>
+                <div className="form-group"><label className="form-label">Status</label>
+                  <select className="form-select" value={formData.status||"Draft"} onChange={e=>setFormData(p=>({...p,status:e.target.value}))}>
+                    {DOC_STATUS.map(s=><option key={s}>{s}</option>)}
+                  </select></div>
+                <div className="form-group"><label className="form-label">No. Referensi (PO/Shipment)</label>
+                  <input className="form-input" value={formData.no_referensi||""} onChange={e=>setFormData(p=>({...p,no_referensi:e.target.value}))} placeholder="misal: PO-2026-001"/></div>
+                <div className="form-group"><label className="form-label">Tanggal Dokumen</label>
+                  <input type="date" className="form-input" value={formData.tanggal_dokumen||""} onChange={e=>setFormData(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tanggal Expired (opsional)</label>
+                  <input type="date" className="form-input" value={formData.tanggal_expired||""} onChange={e=>setFormData(p=>({...p,tanggal_expired:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tags (pisah koma)</label>
+                  <input className="form-input" value={formData.tags||""} onChange={e=>setFormData(p=>({...p,tags:e.target.value}))} placeholder="urgent, Q2-2026"/></div>
+                <div className="form-group full"><label className="form-label">Keterangan</label>
+                  <textarea className="form-textarea" value={formData.keterangan||""} onChange={e=>setFormData(p=>({...p,keterangan:e.target.value}))} placeholder="Catatan tambahan..."/></div>
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:20}}>
+                <button className="btn btn-ghost" onClick={onCancel} disabled={uploading}>Batal</button>
+                <button className="btn btn-primary" onClick={onUpload} disabled={uploading||!pendingFiles.length}>
+                  {uploading?<><div className="spinner"/>&nbsp;Mengupload...</>:`⬆️ Upload ${pendingFiles.length} File ke Drive`}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── DOCS PAGE ─────────────────────────────────────────────────────────
+function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
+  function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Expired:"badge-expired",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
+  function expBadge(d){ const r=daysUntil(d.tanggal_expired); if(r===null) return null; if(r<=0) return <span className="badge badge-expired">Expired</span>; if(r<=30) return <span className="badge badge-expiring">{r}h</span>; return null; }
+  return (
+    <>
+      <div className="header">
+        <div className="header-title">Semua Dokumen ({allDocs.length})</div>
+        <div className="header-right">
+          {loading&&<div className="spinner"/>}
+          <button className="btn btn-ghost btn-sm" onClick={onRefresh}>🔄</button>
+          <button className="btn btn-ghost btn-sm" onClick={onExport}>📥 CSV</button>
+        </div>
+      </div>
+      <div className="content">
+        <div className="toolbar">
+          <div className="search-wrap"><span className="search-icon">🔍</span>
+            <input className="search-input" placeholder="Cari dokumen..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+          <select className="select-filter" value={filterType} onChange={e=>setFilterType(e.target.value)}>
+            <option value="Semua">Semua Tipe</option>{DOC_TYPES.map(t=><option key={t}>{t}</option>)}
+          </select>
+          <select className="select-filter" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+            <option value="Semua">Semua Status</option>{DOC_STATUS.map(s=><option key={s}>{s}</option>)}
+          </select>
+          <div className="view-toggle" style={{marginLeft:"auto"}}>
+            <button className={`view-btn${view==="list"?" active":""}`} onClick={()=>setView("list")}>☰</button>
+            <button className={`view-btn${view==="grid"?" active":""}`} onClick={()=>setView("grid")}>⊞</button>
+          </div>
+        </div>
+
+        {docs.length===0&&!loading?(
+          <div className="empty-state"><div className="empty-icon">📂</div><div className="empty-title">Tidak ada dokumen</div><div className="empty-sub">Coba ubah filter atau kata kunci</div></div>
+        ):view==="list"?(
+          <div className="table-wrap"><table>
+            <thead><tr><th>Nama File</th><th>Tipe</th><th>Referensi</th><th>Status</th><th>Upload Oleh</th><th>Tgl Upload</th><th>Ukuran</th><th></th></tr></thead>
+            <tbody>{docs.map(d=>(
+              <tr key={d.id} style={{cursor:"pointer"}} onClick={()=>onDetail(d)}>
+                <td><div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <FileIcon name={d.nama_file} size={16}/>
+                  <div><div style={{fontWeight:500,fontSize:13.5}}>{d.nama_file}</div>
+                  {d.tags?.length>0&&<div style={{fontSize:10,color:"var(--text3)",fontFamily:"JetBrains Mono"}}>{(Array.isArray(d.tags)?d.tags:[]).join(", ")}</div>}</div>
+                </div></td>
+                <td><span className="badge badge-type">{d.tipe_dokumen}</span></td>
+                <td style={{color:"var(--text2)",fontSize:13}}>{d.no_referensi||"-"}</td>
+                <td>{statusBadge(d.status)}&nbsp;{expBadge(d)}</td>
+                <td style={{color:"var(--text3)",fontSize:12}}>{d.upload_oleh}</td>
+                <td style={{color:"var(--text2)",fontSize:12,fontFamily:"JetBrains Mono"}}>{fmtDate(d.tanggal_upload)}</td>
+                <td style={{color:"var(--text3)",fontSize:12,fontFamily:"JetBrains Mono"}}>{fmtBytes(d.ukuran_file)}</td>
+                <td onClick={e=>e.stopPropagation()}>
+                  <div style={{display:"flex",gap:4}}>
+                    <a href={d.drive_web_link} target="_blank" className="btn btn-ghost btn-sm" title="Buka Drive">↗</a>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(d)}>✏️</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+                  </div>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ):(
+          <div className="doc-grid">{docs.map(d=>(
+            <div key={d.id} className="doc-card" onClick={()=>onDetail(d)}>
+              <div className="doc-card-icon"><FileIcon name={d.nama_file} size={24}/></div>
+              <div className="doc-card-name">{d.nama_file}</div>
+              <div className="doc-card-meta">{d.upload_oleh} · {fmtDate(d.tanggal_upload)}</div>
+              <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
+                <span className="badge badge-type">{d.tipe_dokumen}</span>
+                {statusBadge(d.status)}{expBadge(d)}
+              </div>
+              <div className="doc-card-actions" onClick={e=>e.stopPropagation()}>
+                <a href={d.drive_web_link} target="_blank" className="btn btn-ghost btn-sm">↗ Drive</a>
+                <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+              </div>
+            </div>
+          ))}</div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── DETAIL MODAL ──────────────────────────────────────────────────────
+function DetailModal({doc,onClose,onDelete,onEdit}){
+  const rows=[
+    ["Nama File",doc.nama_file],["Tipe",doc.tipe_dokumen],["No Referensi",doc.no_referensi||"-"],
+    ["Status",doc.status],["Upload Oleh",doc.upload_oleh],["Tgl Upload",fmtDate(doc.tanggal_upload)],
+    ["Tgl Dokumen",fmtDate(doc.tanggal_dokumen)],
+    ["Tgl Expired",doc.tanggal_expired?fmtDate(doc.tanggal_expired)+(daysUntil(doc.tanggal_expired)>0?" ("+daysUntil(doc.tanggal_expired)+" hari lagi)":" (EXPIRED)"):"-"],
+    ["Ukuran",fmtBytes(doc.ukuran_file)],
+    ["Tags",(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")||"-"],
+    ["Keterangan",doc.keterangan||"-"]
+  ];
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">Detail Dokumen</div>
+        {rows.map(([l,v])=><div className="detail-row" key={l}><div className="detail-label">{l}</div><div className="detail-value" style={{fontSize:13}}>{v}</div></div>)}
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
+          <button className="btn btn-secondary" onClick={onEdit}>✏️ Edit</button>
+          <a href={doc.drive_web_link} target="_blank" className="btn btn-secondary">↗ Drive</a>
+          <button className="btn btn-danger" onClick={()=>{onClose();onDelete(doc);}}>🗑 Hapus</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────────────
+function EditModal({doc,onClose,onSave}){
+  const [form,setForm]=useState({
+    tipe_dokumen:doc.tipe_dokumen,status:doc.status,
+    no_referensi:doc.no_referensi||"",tanggal_dokumen:doc.tanggal_dokumen||"",
+    tanggal_expired:doc.tanggal_expired||"",keterangan:doc.keterangan||"",
+    tags:(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")
+  });
+  const [saving,setSaving]=useState(false);
+  async function save(){ setSaving(true); await onSave(form); setSaving(false); }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">Edit Metadata</div>
+        <div className="form-grid">
+          <div className="form-group"><label className="form-label">Tipe Dokumen</label>
+            <select className="form-select" value={form.tipe_dokumen} onChange={e=>setForm(p=>({...p,tipe_dokumen:e.target.value}))}>{DOC_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Status</label>
+            <select className="form-select" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>{DOC_STATUS.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">No Referensi</label>
+            <input className="form-input" value={form.no_referensi} onChange={e=>setForm(p=>({...p,no_referensi:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tgl Dokumen</label>
+            <input type="date" className="form-input" value={form.tanggal_dokumen} onChange={e=>setForm(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tgl Expired</label>
+            <input type="date" className="form-input" value={form.tanggal_expired} onChange={e=>setForm(p=>({...p,tanggal_expired:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tags</label>
+            <input className="form-input" value={form.tags} onChange={e=>setForm(p=>({...p,tags:e.target.value}))} placeholder="urgent, Q2-2026"/></div>
+          <div className="form-group full"><label className="form-label">Keterangan</label>
+            <textarea className="form-textarea" value={form.keterangan} onChange={e=>setForm(p=>({...p,keterangan:e.target.value}))}/></div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Batal</button>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving?<><div className="spinner"/>&nbsp;Menyimpan...</>:"Simpan"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function ToastContainer({toasts}){
+  return <div className="toast-container">{toasts.map(t=>(
+    <div key={t.id} className={`toast toast-${t.type}`}>
+      <span>{t.type==="success"?"✅":t.type==="error"?"❌":"⚠️"}</span><span>{t.msg}</span>
+    </div>
+  ))}</div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
 </html>
