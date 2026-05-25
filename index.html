@@ -608,13 +608,18 @@ function App(){
 
   async function handleDelete(doc){
     if(!confirm(`Hapus "${doc.nama_file}"? File akan dihapus dari Drive & database.`)) return;
+    let driveWarn=false;
+    if(doc.drive_file_id){
+      try{ await deleteDriveFile(doc.drive_file_id); }
+      catch(e){ driveWarn=true; }
+    }
     try{
-      if(doc.drive_file_id) await deleteDriveFile(doc.drive_file_id);
       await sheetsDeleteRow(doc.id);
       await loadDocs();
       setDetailDoc(null);
-      toast("Dokumen berhasil dihapus");
-    }catch(e){ toast("Gagal hapus: "+e.message,"error"); }
+      if(driveWarn) toast("Record dihapus. File Drive tidak bisa dihapus (no permission).","warn");
+      else toast("Dokumen berhasil dihapus");
+    }catch(e){ toast("Gagal hapus record: "+e.message,"error"); }
   }
 
   async function handleEdit(data){
