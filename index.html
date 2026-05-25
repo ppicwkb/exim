@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EXIM WKB</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0c0f;--surface:#111318;--surface2:#181c23;--border:#1e2330;--border2:#252c3a;--accent:#00d4aa;--accent2:#0099ff;--warn:#ff6b35;--danger:#ff3d5a;--success:#00d4aa;--text:#e8ecf4;--text2:#8892a4;--text3:#4a5568;--gold:#f5c842;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:var(--surface);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.logo-text{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-0.5px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto;}
+.nav-section-title{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text3);letter-spacing:2px;text-transform:uppercase;padding:8px 10px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:13.5px;color:var(--text2);margin-bottom:2px;border:1px solid transparent;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(0,212,170,0.1);color:var(--accent);border-color:rgba(0,212,170,0.2);}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:10px;font-weight:600;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;}
+.header-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;letter-spacing:-0.3px;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg);}
+.content{padding:28px;flex:1;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.stat-card:hover{border-color:var(--border2);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.accent::before{background:var(--accent);}
+.stat-card.blue::before{background:var(--accent2);}
+.stat-card.warn::before{background:var(--warn);}
+.stat-card.danger::before{background:var(--danger);}
+.stat-label{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text);line-height:1;}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:6px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);}
+.upload-zone{background:var(--surface);border:2px dashed var(--border2);border-radius:14px;padding:40px 28px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:24px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(0,212,170,0.04);}
+.upload-icon{font-size:36px;margin-bottom:12px;}
+.upload-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;}
+.upload-sub{font-size:13px;color:var(--text2);}
+.upload-formats{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);margin-top:8px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.form-input,.form-select,.form-textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13.5px;outline:none;transition:border-color 0.15s;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:72px;}
+.file-preview-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.file-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.file-ext{width:36px;height:36px;border-radius:6px;background:rgba(0,212,170,0.12);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;flex-shrink:0;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-size{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.file-remove{width:24px;height:24px;border-radius:50%;background:transparent;border:1px solid var(--border2);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.15s;flex-shrink:0;}
+.file-remove:hover{background:var(--danger);border-color:var(--danger);color:#fff;}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;font-family:'Instrument Sans',sans-serif;white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--accent);color:var(--bg);}
+.btn-primary:hover{background:#00bfa0;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:#e02040;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.search-wrap{position:relative;}
+.search-input{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 12px 8px 36px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13.5px;outline:none;width:240px;transition:border-color 0.15s;}
+.search-input:focus{border-color:var(--accent);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none;}
+.select-filter{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:13px;font-family:'Instrument Sans',sans-serif;outline:none;cursor:pointer;transition:border-color 0.15s;}
+.select-filter:focus{border-color:var(--accent);}
+.view-toggle{display:flex;gap:4px;}
+.view-btn{width:32px;height:32px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.15s;}
+.view-btn.active{background:var(--accent);border-color:var(--accent);color:var(--bg);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead{background:var(--surface2);}
+th{padding:11px 14px;text-align:left;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:12px 14px;font-size:13.5px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background 0.1s;}
+tbody tr:hover{background:var(--surface2);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.badge-final{background:rgba(0,212,170,0.15);color:var(--accent);}
+.badge-draft{background:rgba(255,107,53,0.15);color:var(--warn);}
+.badge-selesai{background:rgba(74,85,104,0.2);color:#a0aec0;}
+.badge-closing{background:rgba(255,61,90,0.15);color:var(--danger);}
+.badge-cancelled{background:rgba(74,85,104,0.15);color:var(--text3);}
+.badge-lewat{background:rgba(255,61,90,0.12);color:var(--danger);}
+.badge-type{background:rgba(0,153,255,0.12);color:var(--accent2);font-size:10px;padding:2px 7px;}
+.badge-closing-soon{background:rgba(245,200,66,0.15);color:var(--gold);}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
+.doc-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+.doc-card-icon{width:48px;height:48px;border-radius:10px;background:rgba(0,212,170,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;}
+.doc-card-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.doc-card-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.doc-card-actions{display:flex;gap:6px;margin-top:12px;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.4;}
+.empty-title{font-family:'Syne',sans-serif;font-size:16px;color:var(--text2);margin-bottom:6px;}
+.empty-sub{font-size:13px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:520px;max-width:90vw;max-height:85vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,0.5);}
+.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:20px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:slideIn 0.2s ease;max-width:320px;}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast-success{border-left:3px solid var(--success);}
+.toast-error{border-left:3px solid var(--danger);}
+.toast-warn{border-left:3px solid var(--gold);}
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 20% 20%,rgba(0,212,170,0.06) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 80% 80%,rgba(0,153,255,0.05) 0%,transparent 70%);}
+.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:44px 40px;width:420px;max-width:90vw;text-align:center;position:relative;z-index:1;box-shadow:0 32px 80px rgba(0,0,0,0.4);}
+.login-logo-big{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent);margin-bottom:4px;letter-spacing:-1px;}
+.login-logo-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
+.login-desc{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:32px;}
+.google-btn{width:100%;background:#fff;color:#1a1a2e;border:none;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.15s;font-family:'Instrument Sans',sans-serif;}
+.google-btn:hover{background:#f0f0f0;transform:translateY(-1px);}
+.login-features{display:flex;gap:16px;margin-top:28px;justify-content:center;}
+.login-feature{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sidebar-user-info{flex:1;min-width:0;}
+.sidebar-user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-user-email{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;}
+/* ── INVOICE AUTOCOMPLETE ── */
+.autocomplete-wrap{position:relative;}
+.autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--accent);border-top:none;border-radius:0 0 8px 8px;z-index:50;max-height:180px;overflow-y:auto;}
+.autocomplete-item{padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.1s;}
+.autocomplete-item:hover,.autocomplete-item.selected{background:rgba(0,212,170,0.12);color:var(--accent);}
+.autocomplete-item .inv-count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);}
+.autocomplete-new{color:var(--accent2);font-style:italic;}
+/* ── INVOICE GROUP VIEW ── */
+.inv-group{margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.inv-group-header{background:var(--surface2);padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.15s;user-select:none;}
+.inv-group-header:hover{background:rgba(0,212,170,0.06);}
+.inv-group-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--accent2);}
+.inv-group-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.inv-group-count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(0,153,255,0.12);color:var(--accent2);padding:2px 8px;border-radius:10px;}
+.inv-group-chevron{font-size:10px;color:var(--text3);transition:transform 0.2s;}
+.inv-group-chevron.open{transform:rotate(90deg);}
+.inv-group-body{border-top:1px solid var(--border);}
+/* ── INVOICE DRILL-DOWN in dashboard ── */
+.invoice-list-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:4px;}
+.invoice-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.invoice-row:last-child{border-bottom:none;}
+.invoice-row:hover{background:var(--surface2);}
+.invoice-num{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent2);min-width:100px;}
+.invoice-brand{font-size:12px;color:var(--text2);min-width:90px;}
+.invoice-dest{font-size:12px;color:var(--text3);}
+.invoice-files{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);}
+.invoice-drill-arrow{color:var(--text3);font-size:12px;}
+.detail-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;}
+.detail-label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);width:120px;flex-shrink:0;padding-top:2px;}
+.detail-value{font-size:13.5px;color:var(--text);flex:1;}
+.notif-banner{background:rgba(255,61,90,0.08);border:1px solid rgba(255,61,90,0.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;font-size:13.5px;}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.upload-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
+/* ── MOBILE NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:200;padding:0 4px;}
+.mobile-nav-inner{display:flex;align-items:stretch;}
+.mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;cursor:pointer;color:var(--text3);font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;border:none;background:transparent;transition:color 0.15s;position:relative;}
+.mobile-nav-item.active{color:var(--accent);}
+.mobile-nav-item.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--accent);border-radius:0 0 2px 2px;}
+.mobile-nav-icon{font-size:18px;line-height:1;}
+.mobile-nav-badge{position:absolute;top:6px;right:calc(50% - 14px);background:var(--danger);color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 4px;border-radius:8px;font-weight:700;}
+/* ── MOBILE DOC CARDS ── */
+.mobile-doc-list{display:flex;flex-direction:column;gap:10px;}
+.mobile-doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.15s;}
+.mobile-doc-card:active{border-color:var(--accent);}
+.mobile-doc-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.mobile-doc-card-body{flex:1;min-width:0;}
+.mobile-doc-card-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.mobile-doc-card-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.mobile-doc-card-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.mobile-doc-card-actions{display:flex;gap:6px;justify-content:flex-end;}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .mobile-nav{display:flex;}
+  .main{margin-left:0;padding-bottom:64px;}
+  .stats-grid{grid-template-columns:1fr 1fr!important;gap:10px;}
+  .content{padding:16px;}
+  .header{padding:0 16px;height:52px;}
+  .header-title{font-size:14px;}
+  .form-grid{grid-template-columns:1fr;}
+  .toolbar{gap:8px;}
+  .search-input{width:100%;}
+  .search-wrap{flex:1;}
+  .stat-value{font-size:22px;}
+  .modal{padding:20px;width:95vw;}
+  .upload-zone{padding:28px 16px;}
+  .table-wrap{overflow-x:auto;}
+  table{min-width:600px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── CONFIG ──────────────────────────────────────────────────────────
+const CLIENT_ID   = "530281398554-bhhbsd9o989mt6b52k4r88uodnvdf98j.apps.googleusercontent.com";
+const FOLDER_ID   = "1JozsXF_7ooZYRcHzjAk8YQllfAnS03fW";
+const SHEET_ID    = "1db0D1yTN2w7kv8N2mOG-p6mSk-ZmsuDqbcoXdagEoKE";
+const SHEET_NAME  = "Dokumen";
+const SCOPES      = "openid profile email https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets";
+const MIME_ACCEPT = ".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.zip";
+
+const DOC_TYPES  = ["Invoice","Packing List","Bill of Lading","AWB","PIB","PEB","COO","SKA","Letter of Credit","Phytosanitary","Fumigasi","Lainnya"];
+const DOC_STATUS = ["Draft","Final","Selesai","Dibatalkan"];
+
+// ── HELPERS ─────────────────────────────────────────────────────────
+function genId(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
+function fmtBytes(b){ if(!b||b<1024) return (b||0)+"B"; if(b<1048576) return (b/1024).toFixed(1)+"KB"; return (b/1048576).toFixed(1)+"MB"; }
+function fmtDate(d){ if(!d) return "-"; const dt=d.includes("T")?new Date(d):new Date(d+"T00:00:00"); return dt.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
+function getExt(name){ return (name||"").split(".").pop().toLowerCase(); }
+function getMime(f){ return f.type||"application/octet-stream"; }
+function daysUntil(dateStr){ if(!dateStr) return null; const today=new Date(); today.setHours(0,0,0,0); const target=new Date(dateStr+"T00:00:00"); return Math.ceil((target-today)/864e5); }
+function guessDocType(name){
+  const n=(name||"").toLowerCase();
+  if(n.includes("invoice")||n.includes("inv_")||n.includes("_inv")) return "Invoice";
+  if(n.includes("packing")||n.includes("_pl_")||n.startsWith("pl")) return "Packing List";
+  if(n.includes("bl")||n.includes("bill")||n.includes("lading")) return "Bill of Lading";
+  if(n.includes("awb")) return "AWB";
+  if(n.includes("pib")) return "PIB";
+  if(n.includes("peb")) return "PEB";
+  if(n.includes("coo")||n.includes("origin")) return "COO";
+  if(n.includes("ska")) return "SKA";
+  if(n.includes("lc_")||n.includes("_lc")||n.includes("letter")) return "Letter of Credit";
+  if(n.includes("phyto")) return "Phytosanitary";
+  if(n.includes("fumig")) return "Fumigasi";
+  return "Lainnya";
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────
+let _toastSetter = null;
+function useToasts(){ const [toasts,setToasts]=useState([]); _toastSetter=setToasts; return toasts; }
+function toast(msg,type="success"){
+  if(!_toastSetter) return;
+  const id=genId();
+  _toastSetter(t=>[...t,{id,msg,type}]);
+  setTimeout(()=>_toastSetter(t=>t.filter(x=>x.id!==id)),4000);
+}
+
+// ── GOOGLE APIS ──────────────────────────────────────────────────────
+function getToken(){ return window._gToken||null; }
+
+async function gFetch(url, opts={}){
+  const tk=getToken();
+  if(!tk) throw new Error("Belum login");
+  const res=await fetch(url,{...opts,headers:{Authorization:"Bearer "+tk,...(opts.headers||{})}});
+  if(res.status===401) throw new Error("Sesi expired, silakan login ulang");
+  if(res.status===204) return {};
+  if(!res.ok){
+    let msg="API error "+res.status;
+    try{ const e=await res.json(); msg=e?.error?.message||msg; }catch(_){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+// ── SHEETS API ───────────────────────────────────────────────────────
+const SHEET_COLS = ["id","nama_file","tipe_dokumen","no_referensi","tanggal_upload","tanggal_dokumen","tanggal_closing","status","ukuran_file","tipe_mime","drive_file_id","drive_web_link","upload_oleh","keterangan","tags","no_invoice","tanggal_eta","brand","destination"];
+
+async function sheetsEnsureHeader(){
+  // Read current header (up to col S = 19 cols)
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:S1")}`;
+  const res=await gFetch(url);
+  const existing=(res.values&&res.values[0])||[];
+  if(!existing.length||existing[0]!=="id"){
+    // Sheet has no header at all — write full header
+    const r=encodeURIComponent(`${SHEET_NAME}!A1`);
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${r}?valueInputOption=RAW`,{
+      method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({values:[SHEET_COLS]})
+    });
+  } else {
+    // Header exists — append any missing columns to the right
+    const missing=SHEET_COLS.filter(c=>!existing.includes(c));
+    if(missing.length){
+      const startCol=existing.length; // 0-based index of first new col
+      // Build column letter from 0-based index
+      const colLetter=n=>String.fromCharCode(65+n);
+      const startLetter=colLetter(startCol);
+      const endLetter=colLetter(startCol+missing.length-1);
+      const patchRange=encodeURIComponent(`${SHEET_NAME}!${startLetter}1:${endLetter}1`);
+      await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${patchRange}?valueInputOption=RAW`,{
+        method:"PUT",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({values:[missing]})
+      });
+    }
+  }
+}
+
+async function sheetsReadAll(){
+  // Always read full SHEET_COLS range so new columns are captured
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A:S")}`;
+  const res=await gFetch(url);
+  if(!res.values||res.values.length<2) return [];
+  const [header,...rows]=res.values;
+  // Build a position map: col name -> index in actual sheet
+  const colPos={};
+  header.forEach((h,i)=>{ colPos[h]=i; });
+  return rows.map(r=>{
+    const obj={};
+    // Map every expected column, falling back to "" if missing in this row
+    SHEET_COLS.forEach(c=>{
+      const i=colPos[c];
+      obj[c]=(i!==undefined&&r[i]!==undefined)?r[i]:"";
+    });
+    obj.ukuran_file=parseInt(obj.ukuran_file)||0;
+    obj.tags=obj.tags?obj.tags.split("|").filter(Boolean):[];
+    return obj;
+  }).filter(r=>r.id);
+}
+
+async function sheetsAppendRow(doc){
+  // Baca header aktual dari sheet agar urutan kolom benar
+  const headerRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:S1")}`);
+  const header=(headerRes.values&&headerRes.values[0])||SHEET_COLS;
+  // Bangun row sesuai urutan header di sheet
+  const row=header.map(c=>{
+    if(c==="tags") return (doc.tags||[]).join("|");
+    return doc[c]!==null&&doc[c]!==undefined?String(doc[c]):"";
+  });
+  const appendRange=encodeURIComponent(`${SHEET_NAME}!A:S`);
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${appendRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({values:[row]})
+  });
+}
+
+async function sheetsUpdateRow(docId, updates){
+  // Read column A to find the row number
+  const colARange=encodeURIComponent(`${SHEET_NAME}!A:A`);
+  const res=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${colARange}`);
+  if(!res.values) return;
+  const rowIdx=res.values.findIndex(r=>r[0]===docId);
+  if(rowIdx<0){ toast("Dokumen tidak ditemukan di sheet","error"); return; }
+  const rowNum=rowIdx+1;
+  // Read header row to know actual column positions
+  const headerRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME+"!A1:S1")}`);
+  const header=(headerRes.values&&headerRes.values[0])||SHEET_COLS;
+  const colPos={};
+  header.forEach((h,i)=>{ colPos[h]=i; });
+  // Read the current row
+  const rowRange=encodeURIComponent(`${SHEET_NAME}!A${rowNum}:S${rowNum}`);
+  const rowRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}`);
+  const curRow=(rowRes.values&&rowRes.values[0])||[];
+  // Build new row matching the actual header order (not SHEET_COLS order)
+  const newRow=header.map((c,i)=>{
+    if(c==="tags"){
+      if(!(c in updates)) return curRow[i]||"";
+      const t=updates.tags;
+      if(!t) return "";
+      if(Array.isArray(t)) return t.join("|");
+      return t.split(",").map(x=>x.trim()).filter(Boolean).join("|");
+    }
+    if(c in updates) return updates[c]!==null&&updates[c]!==undefined?String(updates[c]):"";
+    return curRow[i]||"";
+  });
+  // Ensure row covers full SHEET_COLS width (add empty cells for any cols not in current header)
+  const fullRow=[...newRow];
+  SHEET_COLS.forEach(c=>{
+    if(!(c in colPos)){
+      // Column not yet in sheet header — but sheetsEnsureHeader runs first so this shouldn't happen
+      // Append at end just in case
+      fullRow.push((c in updates)?String(updates[c]||""):"");
+    }
+  });
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${rowRange}?valueInputOption=RAW`,{
+    method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({values:[fullRow.slice(0,SHEET_COLS.length)]})
+  });
+}
+
+async function sheetsDeleteRow(docId){
+  const colARange=encodeURIComponent(`${SHEET_NAME}!A:A`);
+  const res=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${colARange}`);
+  if(!res.values) return;
+  const rowIdx=res.values.findIndex(r=>r[0]===docId);
+  if(rowIdx<0) return;
+  const metaRes=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets(properties)`);
+  const sheet=metaRes.sheets?.find(s=>s.properties.title===SHEET_NAME);
+  const sheetGid=sheet?.properties?.sheetId??0;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sheetGid,dimension:"ROWS",startIndex:rowIdx,endIndex:rowIdx+1}}}]})
+  });
+}
+
+// ── DRIVE API ────────────────────────────────────────────────────────
+async function uploadToDrive(file, onProgress){
+  const tk=getToken();
+  const meta={name:file.name,parents:[FOLDER_ID]};
+  const initRes=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink&supportsAllDrives=true",{
+    method:"POST",
+    headers:{Authorization:"Bearer "+tk,"Content-Type":"application/json","X-Upload-Content-Type":getMime(file),"X-Upload-Content-Length":file.size},
+    body:JSON.stringify(meta)
+  });
+  if(!initRes.ok){
+    let errMsg="Init upload gagal: "+initRes.status;
+    try{ const e=await initRes.json(); errMsg=e?.error?.message||errMsg; }catch(_){}
+    throw new Error(errMsg);
+  }
+  const uploadUrl=initRes.headers.get("Location");
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open("PUT",uploadUrl);
+    xhr.setRequestHeader("Content-Type",getMime(file));
+    xhr.upload.onprogress=e=>{ if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100)); };
+    xhr.onload=()=>{ if(xhr.status===200||xhr.status===201) resolve(JSON.parse(xhr.responseText)); else reject(new Error("Upload gagal: "+xhr.status)); };
+    xhr.onerror=()=>reject(new Error("Network error"));
+    xhr.send(file);
+  });
+}
+
+async function deleteDriveFile(fileId){
+  const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,{
+    method:"DELETE",headers:{Authorization:"Bearer "+getToken()}
+  });
+  if(!res.ok&&res.status!==404){
+    let errMsg="Gagal hapus dari Drive: "+res.status;
+    try{ const e=await res.json(); errMsg=e?.error?.message||errMsg; }catch(_){}
+    throw new Error(errMsg);
+  }
+}
+
+// ── FILE ICON ─────────────────────────────────────────────────────────
+function FileIcon({name,size=20}){
+  const map={pdf:"📄",xlsx:"📊",xls:"📊",docx:"📝",doc:"📝",jpg:"🖼️",jpeg:"🖼️",png:"🖼️",zip:"📦"};
+  return <span style={{fontSize:size}}>{map[getExt(name)]||"📋"}</span>;
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────
+function App(){
+  const [user,setUser]=useState(null);
+  const [gReady,setGReady]=useState(false);
+  const [page,setPage]=useState("dashboard");
+  const [docs,setDocs]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [view,setView]=useState(window.innerWidth<=768?"mobile":"list");
+  const [search,setSearch]=useState("");
+  const [filterType,setFilterType]=useState("Semua");
+  const [filterStatus,setFilterStatus]=useState("Semua");
+  const [filterInvoice,setFilterInvoice]=useState("");  // invoice drill-down
+  const [pendingFiles,setPendingFiles]=useState([]);
+  const [formData,setFormData]=useState({});
+  const [uploading,setUploading]=useState(false);
+  const [uploadProgress,setUploadProgress]=useState({});
+  const [detailDoc,setDetailDoc]=useState(null);
+  const [editDoc,setEditDoc]=useState(null);
+  const [dragging,setDragging]=useState(false);
+  const fileInputRef=useRef();
+  const toasts=useToasts();
+
+  useEffect(()=>{
+    const chk=setInterval(()=>{ if(window.google?.accounts){ setGReady(true); clearInterval(chk); }},200);
+    return ()=>clearInterval(chk);
+  },[]);
+
+  // Restore session on page reload
+  useEffect(()=>{
+    if(!gReady) return;
+    const saved=sessionStorage.getItem("_dms_token");
+    const savedUser=sessionStorage.getItem("_dms_user");
+    if(saved&&savedUser){
+      window._gToken=saved;
+      try{ setUser(JSON.parse(savedUser)); }catch(_){}
+    }
+  },[gReady]);
+
+  const loadDocs=useCallback(async()=>{
+    setLoading(true);
+    try{
+      await sheetsEnsureHeader();
+      const rows=await sheetsReadAll();
+      setDocs(rows);
+    }catch(e){ toast("Gagal load dokumen: "+e.message,"error"); }
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{ if(user) loadDocs(); },[user,loadDocs]);
+
+  function handleGoogleLogin(){
+    if(!gReady) return;
+    const client=window.google.accounts.oauth2.initTokenClient({
+      client_id:CLIENT_ID, scope:SCOPES,
+      callback:async(resp)=>{
+        if(resp.error){ toast("Login gagal: "+resp.error,"error"); return; }
+        window._gToken=resp.access_token;
+        try{
+          const uRes=await fetch("https://www.googleapis.com/oauth2/v2/userinfo",{headers:{Authorization:"Bearer "+resp.access_token}});
+          const uData=await uRes.json();
+          sessionStorage.setItem("_dms_token",resp.access_token);
+          sessionStorage.setItem("_dms_user",JSON.stringify(uData));
+          setUser(uData);
+          toast("Selamat datang, "+uData.given_name+"!");
+        }catch(e){ toast("Gagal ambil profil","error"); }
+      }
+    });
+    client.requestAccessToken();
+  }
+
+  function handleLogout(){
+    if(window._gToken&&window.google?.accounts?.oauth2) window.google.accounts.oauth2.revoke(window._gToken,()=>{});
+    window._gToken=null;
+    sessionStorage.removeItem("_dms_token");
+    sessionStorage.removeItem("_dms_user");
+    setUser(null); setDocs([]); setPendingFiles([]); setFormData({});
+    toast("Logout berhasil","warn");
+  }
+
+  // drag drop
+  function handleDragOver(e){ e.preventDefault(); setDragging(true); }
+  function handleDragLeave(){ setDragging(false); }
+  function handleDrop(e){ e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files)); }
+  function handleFileInput(e){ addFiles(Array.from(e.target.files)); }
+
+  function nextInvoiceNum(){
+    const nums=docs.map(d=>{
+      const m=(d.no_invoice||"").match(/INV#(\d+)/i);
+      return m?parseInt(m[1]):0;
+    });
+    return "INV#"+(Math.max(0,...nums)+1);
+  }
+
+  function addFiles(files){
+    const valid=files.filter(f=>f.size<=50*1024*1024);
+    if(valid.length<files.length) toast("Beberapa file >50MB diabaikan","warn");
+    setPendingFiles(p=>{
+      const combined=[...p,...valid];
+      if(combined.length>10){ toast("Maksimal 10 file per sesi","warn"); return combined.slice(0,10); }
+      return combined;
+    });
+    if(valid.length){
+      setFormData(prev=>Object.keys(prev).length===0
+        ?{tipe_dokumen:guessDocType(valid[0].name),status:"Draft",no_referensi:"",no_invoice:nextInvoiceNum(),tanggal_dokumen:"",tanggal_closing:"",tanggal_eta:"",brand:"",destination:"",keterangan:"",tags:""}
+        :prev
+      );
+    }
+  }
+  function removeFile(idx){ setPendingFiles(p=>p.filter((_,i)=>i!==idx)); }
+
+  async function handleUpload(){
+    if(!pendingFiles.length||!user) return;
+    if(!getToken()){ toast("Sesi expired, login ulang","error"); return; }
+    setUploading(true);
+    try{
+      for(let i=0;i<pendingFiles.length;i++){
+        const f=pendingFiles[i];
+        const driveFile=await uploadToDrive(f,pct=>setUploadProgress(p=>({...p,[f.name]:pct})));
+        const doc={
+          id:genId(), nama_file:f.name,
+          tipe_dokumen:formData.tipe_dokumen||guessDocType(f.name),
+          no_referensi:formData.no_referensi||"",
+          no_invoice:formData.no_invoice||"",
+          tanggal_upload:new Date().toISOString(),
+          tanggal_dokumen:formData.tanggal_dokumen||"",
+          tanggal_closing:formData.tanggal_closing||"",
+          tanggal_eta:formData.tanggal_eta||"",
+          status:formData.status||"Draft",
+          ukuran_file:f.size, tipe_mime:getMime(f),
+          drive_file_id:driveFile.id,
+          drive_web_link:driveFile.webViewLink||`https://drive.google.com/file/d/${driveFile.id}/view`,
+          upload_oleh:user.email,
+          keterangan:formData.keterangan||"",
+          brand:formData.brand||"",
+          destination:formData.destination||"",
+          tags:formData.tags?formData.tags.split(",").map(t=>t.trim()).filter(Boolean):[]
+        };
+        await sheetsAppendRow(doc);
+      }
+      toast(`${pendingFiles.length} file berhasil diupload!`);
+      setPendingFiles([]); setUploadProgress({}); setFormData({});
+      if(fileInputRef.current) fileInputRef.current.value="";
+      await loadDocs(); setPage("dokumen");
+    }catch(e){ toast("Upload gagal: "+e.message,"error"); }
+    setUploading(false);
+  }
+
+  async function handleDelete(doc){
+    if(!confirm(`Hapus "${doc.nama_file}"? File akan dihapus dari Drive & database.`)) return;
+    try{
+      if(doc.drive_file_id) await deleteDriveFile(doc.drive_file_id);
+      await sheetsDeleteRow(doc.id);
+      await loadDocs();
+      setDetailDoc(null);
+      toast("Dokumen berhasil dihapus");
+    }catch(e){ toast("Gagal hapus: "+e.message,"error"); }
+  }
+
+  async function handleEdit(data){
+    if(!editDoc) return;
+    try{
+      await sheetsUpdateRow(editDoc.id,{
+        tipe_dokumen:data.tipe_dokumen, status:data.status,
+        no_referensi:data.no_referensi||"",
+        no_invoice:data.no_invoice||"",
+        tanggal_dokumen:data.tanggal_dokumen||"",
+        tanggal_closing:data.tanggal_closing||"",
+        tanggal_eta:data.tanggal_eta||"",
+        keterangan:data.keterangan||"",
+        brand:data.brand||"",
+        destination:data.destination||"",
+        tags:data.tags?data.tags.split(",").map(t=>t.trim()).filter(Boolean):[]
+      });
+      await loadDocs(); setEditDoc(null);
+      toast("Metadata berhasil diupdate");
+    }catch(e){ toast("Gagal update: "+e.message,"error"); }
+  }
+
+  async function exportCSV(){
+    const rows=[["ID","Nama File","Tipe","No Referensi","No Invoice","Brand","Destination","Status","Tgl Upload","Tgl Dokumen","Tgl Closing","Tgl ETA","Upload Oleh","Ukuran (bytes)","Keterangan","Tags","Drive Link"]];
+    docs.forEach(d=>rows.push([
+      d.id, d.nama_file, d.tipe_dokumen, d.no_referensi||"",
+      d.no_invoice||"", d.brand||"", d.destination||"",
+      d.status, d.tanggal_upload, d.tanggal_dokumen||"",
+      d.tanggal_closing||"", d.tanggal_eta||"", d.upload_oleh, d.ukuran_file||0,
+      d.keterangan||"",
+      (Array.isArray(d.tags)?d.tags:d.tags?d.tags.split("|"):[]).join(", "),
+      d.drive_web_link
+    ]));
+    const csv=rows.map(r=>r.map(c=>'"'+(c+"").replace(/"/g,'""')+'"').join(",")).join("\n");
+    const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="WKB_Export_"+new Date().toISOString().slice(0,10)+".csv"; a.click();
+    toast("CSV berhasil diexport ("+docs.length+" dokumen)");
+  }
+
+  const closingSoon=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=2&&r>0; });
+  const etaSoon=docs.filter(d=>{ if(!d.tanggal_eta) return false; const r=daysUntil(d.tanggal_eta); return r!==null&&r<=10&&r>=0; });
+  const closedDocs=docs.filter(d=>{ if(!d.tanggal_closing) return false; const r=daysUntil(d.tanggal_closing); return r!==null&&r<=0; });
+  // derive all unique invoices for autocomplete/grouping
+  const allInvoices=[...new Set(docs.map(d=>d.no_invoice).filter(Boolean))].sort();
+  const filtered=docs.filter(d=>{
+    const s=search.toLowerCase();
+    const ms=!s||(d.nama_file||"").toLowerCase().includes(s)||(d.no_referensi||"").toLowerCase().includes(s)||(d.no_invoice||"").toLowerCase().includes(s)||(d.keterangan||"").toLowerCase().includes(s)||(d.brand||"").toLowerCase().includes(s)||(d.destination||"").toLowerCase().includes(s);
+    const mt=filterType==="Semua"||d.tipe_dokumen===filterType;
+    const ms2=filterStatus==="Semua"||d.status===filterStatus;
+    const mi=!filterInvoice||d.no_invoice===filterInvoice;
+    return ms&&mt&&ms2&&mi;
+  });
+
+  if(!user) return (
+    <div className="login-screen">
+      <div className="login-bg"/>
+      <div className="login-card">
+        <div className="login-logo-big">WKB</div>
+        <div className="login-logo-sub">Export · Import </div>
+        <p className="login-desc">Sistem manajemen dokumen EXIM WKB</p>
+        <button className="google-btn" onClick={handleGoogleLogin} disabled={!gReady}>
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+          {gReady?"Login dengan Google":"Memuat..."}
+        </button>
+        <div className="login-features">
+          <span className="login-feature">☁️ Drive Terpusat</span>
+          <span className="login-feature">👥 Multi-User</span>
+          <span className="login-feature">🔒 Aman</span>
+        </div>
+      </div>
+      <ToastContainer toasts={toasts}/>
+    </div>
+  );
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-text">EXIM WKB</div>
+          <div className="logo-sub">Export · Import</div>
+        </div>
+        <nav className="sidebar-nav">
+          <div className="nav-section-title">Menu</div>
+          {[{id:"dashboard",label:"Dashboard",icon:"📊"},{id:"upload",label:"Upload Dokumen",icon:"⬆️"},{id:"dokumen",label:"Semua Dokumen",icon:"📁"}].map(m=>(
+            <div key={m.id} className={`nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
+              <span>{m.icon}</span>{m.label}
+              {m.id==="dokumen"&&closingSoon.length>0&&<span className="nav-badge">{closingSoon.length}</span>}
+            </div>
+          ))}
+          <div style={{marginTop:16,padding:"0 10px"}}>
+            <button className="btn btn-ghost btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={loadDocs}>
+              {loading?<><div className="spinner"/>&nbsp;Sync...</>:"🔄 Refresh"}
+            </button>
+          </div>
+        </nav>
+        <div className="sidebar-user">
+          <div className="avatar">{(user.given_name||"U")[0]}</div>
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-name">{user.name||user.given_name}</div>
+            <div className="sidebar-user-email">{user.email}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={handleLogout} title="Logout">↩</button>
+        </div>
+      </aside>
+
+      <main className="main">
+        {page==="dashboard"&&<DashboardPage docs={docs} closingSoon={closingSoon} closedDocs={closedDocs} etaSoon={etaSoon} loading={loading} onNav={setPage} allInvoices={allInvoices} onDrillInvoice={(inv)=>{setFilterInvoice(inv);setPage("dokumen");}}/>}
+        {page==="upload"&&<UploadPage pendingFiles={pendingFiles} formData={formData} setFormData={setFormData} dragging={dragging} uploading={uploading} uploadProgress={uploadProgress} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileInput={handleFileInput} onRemove={removeFile} onUpload={handleUpload} onCancel={()=>{setPendingFiles([]);setFormData({});}} fileInputRef={fileInputRef} user={user} allInvoices={allInvoices}/>}
+        {page==="dokumen"&&<DocsPage docs={filtered} allDocs={docs} view={view} setView={setView} search={search} setSearch={setSearch} filterType={filterType} setFilterType={setFilterType} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterInvoice={filterInvoice} setFilterInvoice={setFilterInvoice} allInvoices={allInvoices} closingSoon={closingSoon} loading={loading} onDetail={setDetailDoc} onDelete={handleDelete} onEdit={setEditDoc} onExport={exportCSV} onRefresh={loadDocs}/>}
+      </main>
+
+      {detailDoc&&<DetailModal doc={detailDoc} onClose={()=>setDetailDoc(null)} onDelete={handleDelete} onEdit={()=>{setEditDoc(detailDoc);setDetailDoc(null);}}/>}
+      {editDoc&&<EditModal doc={editDoc} onClose={()=>setEditDoc(null)} onSave={handleEdit} allInvoices={allInvoices}/>}
+      <ToastContainer toasts={toasts}/>
+      <nav className="mobile-nav">
+        <div className="mobile-nav-inner">
+          {[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"upload",icon:"⬆️",label:"Upload"},{id:"dokumen",icon:"📁",label:"Dokumen"}].map(m=>(
+            <button key={m.id} className={`mobile-nav-item${page===m.id?" active":""}`} onClick={()=>setPage(m.id)}>
+              <span className="mobile-nav-icon">{m.icon}</span>
+              <span>{m.label}</span>
+              {m.id==="dokumen"&&closingSoon.length>0&&<span className="mobile-nav-badge">{closingSoon.length}</span>}
+            </button>
+          ))}
+          <button className="mobile-nav-item" onClick={handleLogout}>
+            <span className="mobile-nav-icon">↩</span>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+function DashboardPage({docs,closingSoon,closedDocs,etaSoon,loading,onNav,allInvoices,onDrillInvoice}){
+  const totalSize=docs.reduce((a,d)=>a+(parseInt(d.ukuran_file)||0),0);
+  const [invPage,setInvPage]=useState(1);
+  const INV_PER_PAGE=10;
+
+  const totalInvoice=new Set(docs.map(d=>d.no_invoice).filter(Boolean)).size;
+  const byType=DOC_TYPES.reduce((a,t)=>({...a,[t]:docs.filter(d=>d.tipe_dokumen===t).length}),{});
+  const byUser={};
+  docs.forEach(d=>{ byUser[d.upload_oleh]=(byUser[d.upload_oleh]||0)+1; });
+  const invoiceMap={};
+  docs.forEach(d=>{
+    if(!d.no_invoice) return;
+    if(!invoiceMap[d.no_invoice]) invoiceMap[d.no_invoice]={count:0,brand:d.brand||"",destination:d.destination||"",docs:[]};
+    invoiceMap[d.no_invoice].count++;
+    invoiceMap[d.no_invoice].docs.push(d);
+    if(!invoiceMap[d.no_invoice].brand&&d.brand) invoiceMap[d.no_invoice].brand=d.brand;
+    if(!invoiceMap[d.no_invoice].destination&&d.destination) invoiceMap[d.no_invoice].destination=d.destination;
+  });
+  const invoiceEntries=Object.entries(invoiceMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  const totalInvPages=Math.ceil(invoiceEntries.length/INV_PER_PAGE);
+
+  // Reset ke halaman 1 kalau total halaman berkurang
+  useEffect(()=>{ if(invPage>totalInvPages&&totalInvPages>0) setInvPage(1); },[invoiceEntries.length]);
+
+  // Smart pagination: tampilkan max 5 nomor halaman dengan ellipsis
+  function pageButtons(cur, total){
+    if(total<=7) return Array.from({length:total},(_,i)=>i+1);
+    const pages=new Set([1,total,cur,cur-1,cur+1].filter(p=>p>=1&&p<=total));
+    const sorted=[...pages].sort((a,b)=>a-b);
+    const result=[];
+    sorted.forEach((p,i)=>{ if(i>0&&p-sorted[i-1]>1) result.push("…"); result.push(p); });
+    return result;
+  }
+
+  return (
+    <>
+      <div className="header">
+        <div className="header-title">Dashboard</div>
+        <div className="header-right">
+          {loading&&<div className="spinner"/>}
+          <button className="btn btn-primary btn-sm" onClick={()=>onNav("upload")}>⬆️ Upload</button>
+        </div>
+      </div>
+      <div className="content">
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)"}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
+        {etaSoon.length>0&&<div className="notif-banner" style={{background:"rgba(0,153,255,0.06)",borderColor:"rgba(0,153,255,0.2)",marginTop:4}}><span style={{fontSize:18}}>🕐</span><span><strong>{etaSoon.length} dokumen</strong> ETA dalam 10 hari ke depan.</span><button className="btn btn-sm btn-secondary" style={{marginLeft:"auto"}} onClick={()=>onNav("dokumen")}>Lihat →</button></div>}
+
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(5,1fr)"}}>
+          <div className="stat-card accent"><div className="stat-label">Total Dokumen</div><div className="stat-value">{docs.length}</div><div className="stat-sub">Semua tipe</div></div>
+          <div className="stat-card blue"><div className="stat-label">Total Invoice</div><div className="stat-value">{totalInvoice}</div><div className="stat-sub">No. unik</div></div>
+          <div className="stat-card warn"><div className="stat-label">ETA ≤10 Hari</div><div className="stat-value">{etaSoon.length}</div><div className="stat-sub">Perlu diproses segera</div></div>
+          <div className="stat-card danger"><div className="stat-label">Closing Segera</div><div className="stat-value">{closingSoon.length}</div><div className="stat-sub">Dalam 2 hari</div></div>
+          <div className="stat-card danger"><div className="stat-label">Total Ukuran</div><div className="stat-value">{fmtBytes(totalSize)}</div><div className="stat-sub">Di Google Drive</div></div>
+        </div>
+
+        <div className="section-header"><div className="section-title">Dokumen per Tipe</div><button className="btn btn-ghost btn-sm" onClick={()=>onNav("dokumen")}>Lihat Semua →</button></div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:10,marginBottom:28}}>
+          {Object.entries(byType).filter(([,c])=>c>0).map(([t,c])=>(
+            <div key={t} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",cursor:"pointer"}} onClick={()=>onNav("dokumen")}>
+              <div style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)",marginBottom:6,textTransform:"uppercase"}}>{t}</div>
+              <div style={{fontFamily:"Syne",fontSize:24,fontWeight:800}}>{c}</div>
+            </div>
+          ))}
+          {docs.length===0&&!loading&&<div style={{gridColumn:"1/-1"}} className="empty-state"><div className="empty-icon">📂</div><div className="empty-title">Belum ada dokumen</div><div className="empty-sub">Upload dokumen pertama</div></div>}
+        </div>
+
+        {invoiceEntries.length>0&&(
+          <>
+            <div className="section-header" style={{marginTop:28}}>
+              <div className="section-title">📋 Daftar Invoice</div>
+              <span style={{fontSize:12,color:"var(--text3)",fontFamily:"JetBrains Mono"}}>{invoiceEntries.length} invoice · klik untuk lihat dokumen</span>
+            </div>
+            <div className="invoice-list-card">
+              {invoiceEntries.slice((invPage-1)*INV_PER_PAGE, invPage*INV_PER_PAGE).map(([inv,info])=>(
+                <div key={inv} className="invoice-row" onClick={()=>onDrillInvoice(inv)}>
+                  <span className="invoice-num">{inv}</span>
+                  <span className="invoice-brand">{info.brand||<span style={{color:"var(--text3)"}}>—</span>}</span>
+                  <span className="invoice-dest">{info.destination||<span style={{color:"var(--text3)"}}>—</span>}</span>
+                  <span className="invoice-files">{info.count} file</span>
+                  <span className="invoice-drill-arrow">→</span>
+                </div>
+              ))}
+            </div>
+            {invoiceEntries.length>INV_PER_PAGE&&(
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderTop:"1px solid var(--border)",background:"var(--surface2)"}}>
+                <span style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)"}}>
+                  {((invPage-1)*INV_PER_PAGE)+1}–{Math.min(invPage*INV_PER_PAGE,invoiceEntries.length)} dari {invoiceEntries.length}
+                </span>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  <button className="btn btn-ghost btn-sm" disabled={invPage===1} onClick={()=>setInvPage(p=>p-1)}>← Prev</button>
+                  {pageButtons(invPage,totalInvPages).map((p,i)=>
+                    p==="…"
+                      ? <span key={"e"+i} style={{padding:"5px 4px",fontSize:12,color:"var(--text3)"}}>…</span>
+                      : <button key={p} className={`btn btn-sm ${invPage===p?"btn-primary":"btn-ghost"}`} onClick={()=>setInvPage(p)}>{p}</button>
+                  )}
+                  <button className="btn btn-ghost btn-sm" disabled={invPage>=totalInvPages} onClick={()=>setInvPage(p=>p+1)}>Next →</button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {Object.keys(byUser).length>0&&(
+          <>
+            <div className="section-header" style={{marginTop:28}}><div className="section-title">Upload per User</div></div>
+            <div className="table-wrap">
+              <table><thead><tr><th>User</th><th>Jumlah Dokumen</th></tr></thead>
+              <tbody>{Object.entries(byUser).sort((a,b)=>b[1]-a[1]).map(([u,c])=>(
+                <tr key={u}><td style={{color:"var(--text2)"}}>{u}</td><td><span className="badge badge-type">{c} file</span></td></tr>
+              ))}</tbody></table>
+            </div>
+          </>
+        )}
+
+        {closingSoon.length>0&&(
+          <>
+            <div className="section-header" style={{marginTop:28}}><div className="section-title">⚠️ Segera Closing <span style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)",fontWeight:400}}>≤2 hari</span></div></div>
+            <div className="table-wrap"><table><thead><tr><th>Dokumen</th><th>Tipe</th><th>No Invoice</th><th>Tgl Closing</th><th>ETA</th><th>Sisa</th><th>Upload Oleh</th></tr></thead>
+            <tbody>{closingSoon.map(d=>(
+              <tr key={d.id}>
+                <td>{d.nama_file}</td>
+                <td><span className="badge badge-type">{d.tipe_dokumen}</span></td>
+                <td style={{fontFamily:"JetBrains Mono",fontSize:12,color:"var(--accent2)"}}>{d.no_invoice||"-"}</td>
+                <td>{fmtDate(d.tanggal_closing)}</td>
+                <td>{d.tanggal_eta?fmtDate(d.tanggal_eta):"-"}</td>
+                <td><span className="badge badge-closing-soon">{daysUntil(d.tanggal_closing)} hari</span></td>
+                <td style={{fontSize:12,color:"var(--text3)"}}>{d.upload_oleh}</td>
+              </tr>
+            ))}</tbody></table></div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── UPLOAD PAGE ───────────────────────────────────────────────────────
+function InvoiceComboInput({value,onChange,allInvoices,placeholder}){
+  const [open,setOpen]=useState(false);
+  const suggestions=(allInvoices||[]).filter(inv=>inv.toLowerCase().includes((value||"").toLowerCase())&&inv!==(value||""));
+  function pick(inv){ onChange(inv); setOpen(false); }
+  function handleBlur(){ setTimeout(()=>setOpen(false),150); }
+  return (
+    <div className="autocomplete-wrap">
+      <input className="form-input" value={value||""}
+        placeholder={placeholder||"misal: INV#200"}
+        onFocus={()=>setOpen(true)}
+        onBlur={handleBlur}
+        onChange={e=>{ onChange(e.target.value); setOpen(true); }}
+      />
+      {open&&(suggestions.length>0||(value&&!allInvoices.includes(value)))&&(
+        <div className="autocomplete-dropdown">
+          {suggestions.map(inv=>(
+            <div key={inv} className="autocomplete-item" onMouseDown={()=>pick(inv)}>
+              <span>🧾</span><span>{inv}</span>
+              <span className="inv-count">existing</span>
+            </div>
+          ))}
+          {value&&!(allInvoices||[]).includes(value)&&(
+            <div className="autocomplete-item autocomplete-new" onMouseDown={()=>pick(value)}>
+              <span>✨</span><span>Buat "{value}"</span>
+              <span className="inv-count">baru</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UploadPage({pendingFiles,formData,setFormData,dragging,uploading,uploadProgress,onDragOver,onDragLeave,onDrop,onFileInput,onRemove,onUpload,onCancel,fileInputRef,user,allInvoices}){
+  return (
+    <>
+      <div className="header"><div className="header-title">Upload Dokumen</div></div>
+      <div className="content">
+        <input ref={fileInputRef} type="file" multiple accept={MIME_ACCEPT} style={{display:"none"}} onChange={onFileInput}/>
+        <div className={`upload-zone${dragging?" drag":""}`} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={()=>fileInputRef.current.click()}>
+          <div className="upload-icon">☁️</div>
+          <div className="upload-title">Drag & Drop File di Sini</div>
+          <div className="upload-sub">atau klik untuk pilih file · maks 10 file, 50MB/file</div>
+          <div className="upload-formats">PDF · XLSX · DOCX · JPG · PNG · ZIP</div>
+        </div>
+
+        {pendingFiles.length>0&&(
+          <>
+            <div className="section-header"><div className="section-title">File Terpilih ({pendingFiles.length})</div></div>
+            <div className="file-preview-list" style={{marginBottom:20}}>
+              {pendingFiles.map((f,i)=>(
+                <div key={i} className="file-item">
+                  <div className="file-ext">{getExt(f.name)}</div>
+                  <div className="file-info">
+                    <div className="file-name">{f.name}</div>
+                    <div className="file-size">{fmtBytes(f.size)}</div>
+                    {uploadProgress[f.name]!==undefined&&<div className="progress-bar"><div className="progress-fill" style={{width:uploadProgress[f.name]+"%"}}/></div>}
+                  </div>
+                  <button className="file-remove" onClick={()=>onRemove(i)} disabled={uploading}>✕</button>
+                </div>
+              ))}
+            </div>
+
+            <div className="section-header"><div className="section-title">Metadata Dokumen</div></div>
+            <div className="upload-section">
+              <div className="form-grid">
+                <div className="form-group"><label className="form-label">Tipe Dokumen</label>
+                  <select className="form-select" value={formData.tipe_dokumen||"Lainnya"} onChange={e=>setFormData(p=>({...p,tipe_dokumen:e.target.value}))}>
+                    {DOC_TYPES.map(t=><option key={t}>{t}</option>)}
+                  </select></div>
+                <div className="form-group"><label className="form-label">Status</label>
+                  <select className="form-select" value={formData.status||"Draft"} onChange={e=>setFormData(p=>({...p,status:e.target.value}))}>
+                    {DOC_STATUS.map(s=><option key={s}>{s}</option>)}
+                  </select></div>
+                <div className="form-group"><label className="form-label">No. Referensi (PO/Shipment)</label>
+                  <input className="form-input" value={formData.no_referensi||""} onChange={e=>setFormData(p=>({...p,no_referensi:e.target.value}))} placeholder="misal: PO-2026-001"/></div>
+                <div className="form-group"><label className="form-label">No. Invoice</label>
+                  <InvoiceComboInput value={formData.no_invoice||""} onChange={v=>setFormData(p=>({...p,no_invoice:v}))} allInvoices={allInvoices}/></div>
+                <div className="form-group"><label className="form-label">Brand</label>
+                  <input className="form-input" value={formData.brand||""} onChange={e=>setFormData(p=>({...p,brand:e.target.value}))} placeholder="misal: HANWA"/></div>
+                <div className="form-group"><label className="form-label">Destination</label>
+                  <input className="form-input" value={formData.destination||""} onChange={e=>setFormData(p=>({...p,destination:e.target.value}))} placeholder="misal: Tokyo, Gadang"/></div>
+                <div className="form-group"><label className="form-label">Tanggal Dokumen</label>
+                  <input type="date" className="form-input" value={formData.tanggal_dokumen||""} onChange={e=>setFormData(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tanggal Closing</label>
+                  <input type="date" className="form-input" value={formData.tanggal_closing||""} onChange={e=>setFormData(p=>({...p,tanggal_closing:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tanggal ETA</label>
+                  <input type="date" className="form-input" value={formData.tanggal_eta||""} onChange={e=>setFormData(p=>({...p,tanggal_eta:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Tags (pisah koma)</label>
+                  <input className="form-input" value={formData.tags||""} onChange={e=>setFormData(p=>({...p,tags:e.target.value}))} placeholder="urgent, Q2-2026"/></div>
+                <div className="form-group full"><label className="form-label">Keterangan</label>
+                  <textarea className="form-textarea" value={formData.keterangan||""} onChange={e=>setFormData(p=>({...p,keterangan:e.target.value}))} placeholder="Catatan tambahan..."/></div>
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:20}}>
+                <button className="btn btn-ghost" onClick={onCancel} disabled={uploading}>Batal</button>
+                <button className="btn btn-primary" onClick={onUpload} disabled={uploading||!pendingFiles.length}>
+                  {uploading?<><div className="spinner"/>&nbsp;Mengupload...</>:`⬆️ Upload ${pendingFiles.length} File ke Drive`}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── INVOICE GROUPED VIEW ──────────────────────────────────────────────
+function InvoiceGroupedView({docs,onDetail,onDelete,onEdit,statusBadge,expBadge}){
+  const [collapsed,setCollapsed]=useState({});
+  // Group docs by invoice
+  const grouped={};
+  const noInvoice=[];
+  docs.forEach(d=>{
+    if(!d.no_invoice){ noInvoice.push(d); return; }
+    if(!grouped[d.no_invoice]) grouped[d.no_invoice]={docs:[],brand:"",destination:""};
+    grouped[d.no_invoice].docs.push(d);
+    if(!grouped[d.no_invoice].brand&&d.brand) grouped[d.no_invoice].brand=d.brand;
+    if(!grouped[d.no_invoice].destination&&d.destination) grouped[d.no_invoice].destination=d.destination;
+  });
+  const groups=Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0]));
+  function toggle(inv){ setCollapsed(c=>({...c,[inv]:!c[inv]})); }
+  function renderRow(d){
+    return (
+      <tr key={d.id} style={{cursor:"pointer"}} onClick={()=>onDetail(d)}>
+        <td><div style={{display:"flex",alignItems:"center",gap:8,paddingLeft:8}}>
+          <FileIcon name={d.nama_file} size={15}/>
+          <span style={{fontWeight:500,fontSize:13}}>{d.nama_file}</span>
+        </div></td>
+        <td><span className="badge badge-type">{d.tipe_dokumen}</span></td>
+        <td style={{color:"var(--text2)",fontSize:12}}>{d.brand||"-"}</td>
+        <td style={{color:"var(--text3)",fontSize:12}}>{d.destination||"-"}</td>
+        <td>{statusBadge(d.status)}&nbsp;{expBadge(d)}</td>
+        <td style={{color:"var(--text3)",fontSize:12}}>{fmtDate(d.tanggal_upload)}</td>
+        <td onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",gap:4}}>
+            <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">↗</a>
+            <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(d)}>✏️</button>
+            <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+  return (
+    <div>
+      {groups.map(([inv,info])=>(
+        <div key={inv} className="inv-group">
+          <div className="inv-group-header" onClick={()=>toggle(inv)}>
+            <span className="inv-group-chevron open" style={{transform:collapsed[inv]?"":"rotate(90deg)"}}>▶</span>
+            <span className="inv-group-title">{inv}</span>
+            {info.brand&&<span className="inv-group-meta">· {info.brand}</span>}
+            {info.destination&&<span className="inv-group-meta">→ {info.destination}</span>}
+            <span className="inv-group-count">{info.docs.length} file</span>
+          </div>
+          {!collapsed[inv]&&(
+            <div className="inv-group-body">
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead style={{background:"var(--surface2)"}}><tr>
+                  <th style={{padding:"8px 14px",textAlign:"left",fontSize:10,fontFamily:"JetBrains Mono",color:"var(--text3)",textTransform:"uppercase",borderBottom:"1px solid var(--border)"}}>Nama File</th>
+                  <th style={{padding:"8px 14px",fontSize:10,fontFamily:"JetBrains Mono",color:"var(--text3)",textTransform:"uppercase",borderBottom:"1px solid var(--border)"}}>Tipe</th>
+                  <th style={{padding:"8px 14px",fontSize:10,fontFamily:"JetBrains Mono",color:"var(--text3)",textTransform:"uppercase",borderBottom:"1px solid var(--border)"}}>Brand</th>
+                  <th style={{padding:"8px 14px",fontSize:10,fontFamily:"JetBrains Mono",color:"var(--text3)",textTransform:"uppercase",borderBottom:"1px solid var(--border)"}}>Destination</th>
+                  <th style={{padding:"8px 14px",fontSize:10,fontFamily:"JetBrains Mono",color:"var(--text3)",textTransform:"uppercase",borderBottom:"1px solid var(--border)"}}>Status</th>
+                  <th style={{padding:"8px 14px",fontSize:10,fontFamily:"JetBrains Mono",color:"var(--text3)",textTransform:"uppercase",borderBottom:"1px solid var(--border)"}}>Tgl Upload</th>
+                  <th style={{padding:"8px 14px",borderBottom:"1px solid var(--border)"}}></th>
+                </tr></thead>
+                <tbody>{info.docs.map(d=>renderRow(d))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
+      {noInvoice.length>0&&(
+        <div className="inv-group">
+          <div className="inv-group-header" onClick={()=>toggle("__none__")}>
+            <span className="inv-group-chevron" style={{transform:collapsed["__none__"]?"":"rotate(90deg)"}}>▶</span>
+            <span className="inv-group-title" style={{color:"var(--text3)"}}>Tanpa Invoice</span>
+            <span className="inv-group-count">{noInvoice.length} file</span>
+          </div>
+          {!collapsed["__none__"]&&(
+            <div className="inv-group-body">
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <tbody>{noInvoice.map(d=>renderRow(d))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── DOCS PAGE ─────────────────────────────────────────────────────────
+function DocsPage({docs,allDocs,view,setView,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterInvoice,setFilterInvoice,allInvoices,closingSoon,loading,onDetail,onDelete,onEdit,onExport,onRefresh}){
+  const [groupByInvoice,setGroupByInvoice]=useState(false);
+  const [docPage,setDocPage]=useState(1);
+  const DOCS_PER_PAGE=25;
+  function statusBadge(s){ const map={Final:"badge-final",Draft:"badge-draft",Selesai:"badge-selesai",Dibatalkan:"badge-cancelled"}; return <span className={`badge ${map[s]||""}`}>{s}</span>; }
+  function expBadge(d){ if(!d.tanggal_closing) return null; const r=daysUntil(d.tanggal_closing); if(r===null) return null; if(r<=0) return d.status==="Selesai"?null:<span className="badge badge-lewat">Lewat</span>; if(r<=2) return <span className="badge badge-closing-soon">{r}h</span>; return null; }
+
+  // Reset halaman saat filter/search berubah
+  useEffect(()=>{ setDocPage(1); },[docs.length, search, filterType, filterStatus, filterInvoice]);
+
+  function pageButtons(cur, total){
+    if(total<=7) return Array.from({length:total},(_,i)=>i+1);
+    const pages=new Set([1,total,cur,cur-1,cur+1].filter(p=>p>=1&&p<=total));
+    const sorted=[...pages].sort((a,b)=>a-b);
+    const result=[];
+    sorted.forEach((p,i)=>{ if(i>0&&p-sorted[i-1]>1) result.push("…"); result.push(p); });
+    return result;
+  }
+
+  const totalDocPages=Math.ceil(docs.length/DOCS_PER_PAGE);
+  const pagedDocs=docs.slice((docPage-1)*DOCS_PER_PAGE, docPage*DOCS_PER_PAGE);
+
+  function PaginationBar(){
+    if(docs.length<=DOCS_PER_PAGE) return null;
+    return (
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderTop:"1px solid var(--border)",background:"var(--surface2)",borderRadius:"0 0 12px 12px"}}>
+        <span style={{fontSize:11,fontFamily:"JetBrains Mono",color:"var(--text3)"}}>
+          {((docPage-1)*DOCS_PER_PAGE)+1}–{Math.min(docPage*DOCS_PER_PAGE,docs.length)} dari {docs.length} dokumen
+        </span>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          <button className="btn btn-ghost btn-sm" disabled={docPage===1} onClick={()=>setDocPage(p=>p-1)}>← Prev</button>
+          {pageButtons(docPage,totalDocPages).map((p,i)=>
+            p==="…"
+              ? <span key={"e"+i} style={{padding:"5px 4px",fontSize:12,color:"var(--text3)"}}>…</span>
+              : <button key={p} className={`btn btn-sm ${docPage===p?"btn-primary":"btn-ghost"}`} onClick={()=>setDocPage(p)}>{p}</button>
+          )}
+          <button className="btn btn-ghost btn-sm" disabled={docPage>=totalDocPages} onClick={()=>setDocPage(p=>p+1)}>Next →</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="header">
+        <div className="header-title">Semua Dokumen ({allDocs.length})</div>
+        <div className="header-right">
+          {loading&&<div className="spinner"/>}
+          <button className="btn btn-ghost btn-sm" onClick={onRefresh}>🔄</button>
+          <button className="btn btn-ghost btn-sm" onClick={onExport}>📥 CSV</button>
+        </div>
+      </div>
+      <div className="content">
+        {closingSoon.length>0&&<div className="notif-banner" style={{background:"rgba(245,200,66,0.06)",borderColor:"rgba(245,200,66,0.2)",marginBottom:16}}><span style={{fontSize:18}}>⚠️</span><span><strong>{closingSoon.length} dokumen</strong> akan closing dalam 2 hari.</span></div>}
+        <div className="toolbar">
+          <div className="search-wrap"><span className="search-icon">🔍</span>
+            <input className="search-input" placeholder="Cari dokumen..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+          <select className="select-filter" value={filterType} onChange={e=>setFilterType(e.target.value)}>
+            <option value="Semua">Semua Tipe</option>{DOC_TYPES.map(t=><option key={t}>{t}</option>)}
+          </select>
+          <select className="select-filter" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+            <option value="Semua">Semua Status</option>{DOC_STATUS.map(s=><option key={s}>{s}</option>)}
+          </select>
+          <select className="select-filter" value={filterInvoice||""} onChange={e=>setFilterInvoice(e.target.value)}>
+            <option value="">Semua Invoice</option>{allInvoices.map(inv=><option key={inv}>{inv}</option>)}
+          </select>
+          <div className="view-toggle" style={{marginLeft:"auto"}}>
+            <button className={`view-btn${view==="list"?" active":""}`} onClick={()=>setView("list")}>☰</button>
+            <button className={`view-btn${view==="grid"?" active":""}`} onClick={()=>setView("grid")}>⊞</button>
+            <button className={`view-btn${view==="mobile"?" active":""}`} onClick={()=>setView("mobile")}>📱</button>
+            <button className={`view-btn${groupByInvoice?" active":""}`} onClick={()=>setGroupByInvoice(g=>!g)} title="Group by Invoice">🧾</button>
+          </div>
+        </div>
+        {filterInvoice&&<div style={{marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12,color:"var(--text3)",fontFamily:"JetBrains Mono"}}>Filter invoice:</span>
+          <span style={{background:"rgba(0,153,255,0.12)",color:"var(--accent2)",fontFamily:"JetBrains Mono",fontSize:12,padding:"3px 10px",borderRadius:20}}>{filterInvoice}</span>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setFilterInvoice("")}>✕ Clear</button>
+        </div>}
+
+        {docs.length===0&&!loading?(
+          <div className="empty-state"><div className="empty-icon">📂</div><div className="empty-title">Tidak ada dokumen</div><div className="empty-sub">Coba ubah filter atau kata kunci</div></div>
+        ):groupByInvoice?(
+          <InvoiceGroupedView docs={docs} onDetail={onDetail} onDelete={onDelete} onEdit={onEdit} statusBadge={statusBadge} expBadge={expBadge}/>
+        ):view==="list"?(
+          <div className="table-wrap"><table>
+            <thead><tr><th>Nama File</th><th>Tipe</th><th>No Invoice</th><th>Brand</th><th>Destination</th><th>Status</th><th>Upload Oleh</th><th>Tgl Upload</th><th></th></tr></thead>
+            <tbody>{pagedDocs.map(d=>(
+              <tr key={d.id} style={{cursor:"pointer"}} onClick={()=>onDetail(d)}>
+                <td><div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <FileIcon name={d.nama_file} size={16}/>
+                  <div><div style={{fontWeight:500,fontSize:13.5}}>{d.nama_file}</div>
+                  {d.tags?.length>0&&<div style={{fontSize:10,color:"var(--text3)",fontFamily:"JetBrains Mono"}}>{(Array.isArray(d.tags)?d.tags:[]).join(", ")}</div>}</div>
+                </div></td>
+                <td><span className="badge badge-type">{d.tipe_dokumen}</span></td>
+                <td style={{color:"var(--accent2)",fontSize:12,fontFamily:"JetBrains Mono"}}>{d.no_invoice||"-"}</td>
+                <td style={{color:"var(--text2)",fontSize:12}}>{d.brand||"-"}</td>
+                <td style={{color:"var(--text3)",fontSize:12}}>{d.destination||"-"}</td>
+                <td>{statusBadge(d.status)}&nbsp;{expBadge(d)}</td>
+                <td style={{color:"var(--text3)",fontSize:12}}>{d.upload_oleh}</td>
+                <td style={{color:"var(--text2)",fontSize:12,fontFamily:"JetBrains Mono"}}>{fmtDate(d.tanggal_upload)}</td>
+                <td onClick={e=>e.stopPropagation()}>
+                  <div style={{display:"flex",gap:4}}>
+                    <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" title="Buka Drive">↗</a>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(d)}>✏️</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+                  </div>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table><PaginationBar/></div>
+        ):view==="grid"?(
+          <><div className="doc-grid">{pagedDocs.map(d=>(
+            <div key={d.id} className="doc-card" onClick={()=>onDetail(d)}>
+              <div className="doc-card-icon"><FileIcon name={d.nama_file} size={24}/></div>
+              <div className="doc-card-name">{d.nama_file}</div>
+              <div className="doc-card-meta">{d.upload_oleh} · {fmtDate(d.tanggal_upload)}</div>
+              {d.no_invoice&&<div className="doc-card-meta" style={{color:"var(--accent2)"}}>INV: {d.no_invoice}</div>}
+              {(d.brand||d.destination)&&<div className="doc-card-meta" style={{color:"var(--text2)",fontSize:10}}>{[d.brand,d.destination&&"→ "+d.destination].filter(Boolean).join(" ")}</div>}
+              <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
+                <span className="badge badge-type">{d.tipe_dokumen}</span>
+                {statusBadge(d.status)}{expBadge(d)}
+              </div>
+              <div className="doc-card-actions" onClick={e=>e.stopPropagation()}>
+                <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">↗ Drive</a>
+                <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+              </div>
+            </div>
+          ))}</div><div style={{marginTop:12}}><PaginationBar/></div></>
+        ):(
+          <><div className="mobile-doc-list">{pagedDocs.map(d=>(
+            <div key={d.id} className="mobile-doc-card" onClick={()=>onDetail(d)}>
+              <div className="mobile-doc-card-top">
+                <div className="file-ext" style={{width:40,height:40,borderRadius:8,background:"rgba(0,212,170,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"JetBrains Mono",fontSize:9,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",flexShrink:0}}>{getExt(d.nama_file)}</div>
+                <div className="mobile-doc-card-body">
+                  <div className="mobile-doc-card-name">{d.nama_file}</div>
+                  <div className="mobile-doc-card-meta">{fmtDate(d.tanggal_upload)} · {fmtBytes(d.ukuran_file)}</div>
+                </div>
+              </div>
+              <div className="mobile-doc-card-badges">
+                <span className="badge badge-type">{d.tipe_dokumen}</span>
+                {statusBadge(d.status)}{expBadge(d)}
+                {d.no_invoice&&<span className="badge" style={{background:"rgba(0,153,255,0.12)",color:"var(--accent2)"}}>{d.no_invoice}</span>}
+                {d.brand&&<span className="badge" style={{background:"rgba(255,255,255,0.05)",color:"var(--text2)"}}>{d.brand}</span>}
+                {d.destination&&<span className="badge" style={{background:"rgba(255,255,255,0.04)",color:"var(--text3)"}}>→ {d.destination}</span>}
+              </div>
+              <div className="mobile-doc-card-actions" onClick={e=>e.stopPropagation()}>
+                <a href={d.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">↗ Drive</a>
+                <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(d)}>✏️</button>
+                <button className="btn btn-danger btn-sm" onClick={()=>onDelete(d)}>🗑</button>
+              </div>
+            </div>
+          ))}</div><div style={{marginTop:12}}><PaginationBar/></div></>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── DETAIL MODAL ──────────────────────────────────────────────────────
+function DetailModal({doc,onClose,onDelete,onEdit}){
+  const rows=[
+    ["Nama File",doc.nama_file],["Tipe",doc.tipe_dokumen],["No Referensi",doc.no_referensi||"-"],
+    ["No Invoice",doc.no_invoice||"-"],
+    ["Brand",doc.brand||"-"],
+    ["Destination",doc.destination||"-"],
+    ["Status",doc.status],["Upload Oleh",doc.upload_oleh],["Tgl Upload",fmtDate(doc.tanggal_upload)],
+    ["Tgl Dokumen",fmtDate(doc.tanggal_dokumen)],
+    ["Tgl Closing",doc.tanggal_closing?fmtDate(doc.tanggal_closing)+(daysUntil(doc.tanggal_closing)>0?" ("+daysUntil(doc.tanggal_closing)+" hari lagi)":" (LEWAT)"):"-"],
+    ["Tgl ETA",doc.tanggal_eta?fmtDate(doc.tanggal_eta):"-"],
+    ["Ukuran",fmtBytes(doc.ukuran_file)],
+    ["Tags",(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")||"-"],
+    ["Keterangan",doc.keterangan||"-"]
+  ];
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">Detail Dokumen</div>
+        {rows.map(([l,v])=><div className="detail-row" key={l}><div className="detail-label">{l}</div><div className="detail-value" style={{fontSize:13}}>{v}</div></div>)}
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
+          <button className="btn btn-secondary" onClick={onEdit}>✏️ Edit</button>
+          <a href={doc.drive_web_link} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">↗ Drive</a>
+          <button className="btn btn-danger" onClick={()=>{onClose();onDelete(doc);}}>🗑 Hapus</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────────────
+function EditModal({doc,onClose,onSave,allInvoices}){
+  const [form,setForm]=useState({
+    tipe_dokumen:doc.tipe_dokumen,status:doc.status,
+    no_referensi:doc.no_referensi||"",no_invoice:doc.no_invoice||"",
+    brand:doc.brand||"",destination:doc.destination||"",
+    tanggal_dokumen:doc.tanggal_dokumen||"",
+    tanggal_closing:doc.tanggal_closing||"",tanggal_eta:doc.tanggal_eta||"",
+    keterangan:doc.keterangan||"",
+    tags:(Array.isArray(doc.tags)?doc.tags:doc.tags?doc.tags.split("|"):[]).join(", ")
+  });
+  const [saving,setSaving]=useState(false);
+  async function save(){ setSaving(true); await onSave(form); setSaving(false); }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">Edit Metadata</div>
+        <div className="form-grid">
+          <div className="form-group"><label className="form-label">Tipe Dokumen</label>
+            <select className="form-select" value={form.tipe_dokumen} onChange={e=>setForm(p=>({...p,tipe_dokumen:e.target.value}))}>{DOC_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Status</label>
+            <select className="form-select" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>{DOC_STATUS.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">No Referensi</label>
+            <input className="form-input" value={form.no_referensi} onChange={e=>setForm(p=>({...p,no_referensi:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">No Invoice</label>
+            <InvoiceComboInput value={form.no_invoice} onChange={v=>setForm(p=>({...p,no_invoice:v}))} allInvoices={allInvoices||[]}/></div>
+          <div className="form-group"><label className="form-label">Brand</label>
+            <input className="form-input" value={form.brand||""} onChange={e=>setForm(p=>({...p,brand:e.target.value}))} placeholder="misal: ACME"/></div>
+          <div className="form-group"><label className="form-label">Destination</label>
+            <input className="form-input" value={form.destination||""} onChange={e=>setForm(p=>({...p,destination:e.target.value}))} placeholder="misal: Jakarta"/></div>
+          <div className="form-group"><label className="form-label">Tgl Dokumen</label>
+            <input type="date" className="form-input" value={form.tanggal_dokumen} onChange={e=>setForm(p=>({...p,tanggal_dokumen:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tgl Closing</label>
+            <input type="date" className="form-input" value={form.tanggal_closing} onChange={e=>setForm(p=>({...p,tanggal_closing:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tgl ETA</label>
+            <input type="date" className="form-input" value={form.tanggal_eta} onChange={e=>setForm(p=>({...p,tanggal_eta:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Tags</label>
+            <input className="form-input" value={form.tags} onChange={e=>setForm(p=>({...p,tags:e.target.value}))} placeholder="urgent, Q2-2026"/></div>
+          <div className="form-group full"><label className="form-label">Keterangan</label>
+            <textarea className="form-textarea" value={form.keterangan} onChange={e=>setForm(p=>({...p,keterangan:e.target.value}))}/></div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Batal</button>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving?<><div className="spinner"/>&nbsp;Menyimpan...</>:"Simpan"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function ToastContainer({toasts}){
+  return <div className="toast-container">{toasts.map(t=>(
+    <div key={t.id} className={`toast toast-${t.type}`}>
+      <span>{t.type==="success"?"✅":t.type==="error"?"❌":"⚠️"}</span><span>{t.msg}</span>
+    </div>
+  ))}</div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
