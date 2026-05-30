@@ -427,6 +427,30 @@
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: var(--surface2); }
 
+  /* Row highlight by urgency */
+  tbody tr.row-overdue { background: rgba(224,92,92,0.07); border-left: 3px solid var(--red); }
+  tbody tr.row-urgent  { background: rgba(245,166,35,0.05); border-left: 3px solid var(--amber); }
+  tbody tr.row-warn    { background: rgba(245,166,35,0.03); border-left: 2px solid rgba(245,166,35,0.4); }
+  tbody tr.row-overdue:hover { background: rgba(224,92,92,0.12); }
+  tbody tr.row-urgent:hover  { background: rgba(245,166,35,0.09); }
+  tbody tr.row-warn:hover    { background: rgba(245,166,35,0.07); }
+
+  /* Sortable headers */
+  thead th.sortable {
+    cursor: pointer;
+    transition: color .15s, background .15s;
+    position: relative;
+  }
+  thead th.sortable:hover { color: var(--text); background: var(--surface3); }
+  thead th.sortable::after {
+    content: ' ⇅';
+    opacity: 0.3;
+    font-size: 0.55rem;
+  }
+  thead th.sort-asc::after  { content: ' ↑'; opacity: 1; color: var(--teal); }
+  thead th.sort-desc::after { content: ' ↓'; opacity: 1; color: var(--teal); }
+  thead th.sort-asc, thead th.sort-desc { color: var(--teal); }
+
   td {
     padding: 9px 13px;
     vertical-align: middle;
@@ -539,6 +563,47 @@
     50%      { opacity:0.55; }
   }
 
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 4px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pagination-info {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .pagination-info span { color: var(--teal); }
+  .pagination-btns {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .pg-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 5px 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    cursor: pointer;
+    transition: all .15s;
+    min-width: 32px;
+    text-align: center;
+  }
+  .pg-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); }
+  .pg-btn.active { background: var(--surface3); border-color: var(--teal); color: var(--teal); font-weight: 600; }
+  .pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .pg-btn.pg-nav { padding: 5px 12px; font-size: 0.75rem; }
+  .pg-sep { color: var(--muted); font-family: var(--mono); font-size: 0.6rem; padding: 0 2px; }
+
   /* ── HIDDEN / EMPTY STATE ── */
   tr.hidden { display:none; }
 
@@ -613,7 +678,7 @@
   <!-- HEADER -->
   <header>
     <div class="brand">
-      <span class="brand-eyebrow">Export-Import staff</span>
+      <span class="brand-eyebrow">Export-Import Operations</span>
       <h1 class="brand-title">EXIM <em>WKB</em></h1>
     </div>
     <div class="kpi-row">
@@ -664,19 +729,24 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>INV</th>
-          <th>PIC</th>
-          <th>Buyer</th>
-          <th>Product</th>
-          <th>Destination</th>
-          <th>Container</th>
-          <th>Vessel</th>
-          <th>ETA</th>
+          <th class="sortable" data-sort="inv" data-table="sailed">INV</th>
+          <th class="sortable" data-sort="pic" data-table="sailed">PIC</th>
+          <th class="sortable" data-sort="buyer" data-table="sailed">Buyer</th>
+          <th class="sortable" data-sort="product" data-table="sailed">Product</th>
+          <th class="sortable" data-sort="dest" data-table="sailed">Destination</th>
+          <th class="sortable" data-sort="container" data-table="sailed">Container</th>
+          <th class="sortable" data-sort="vessel" data-table="sailed">Vessel</th>
+          <th class="sortable" data-sort="eta" data-table="sailed">ETA</th>
+          <th>Days to ETA</th>
           <th>Status</th>
         </tr>
       </thead>
-      <tbody id="body-sailed"><tr class="ld-row"><td colspan="10">⟳ MEMUAT DATA...</td></tr></tbody>
+      <tbody id="body-sailed"><tr class="ld-row"><td colspan="11">⟳ MEMUAT DATA...</td></tr></tbody>
     </table>
+  </div>
+  <div class="pagination" id="pagination-sailed">
+    <span class="pagination-info" id="pg-sailed-info"></span>
+    <div class="pagination-btns" id="pg-sailed-btns"></div>
   </div>
 
   <!-- SECTION: IN PROCESS -->
@@ -690,19 +760,19 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>INV</th>
-          <th>PIC</th>
-          <th>Buyer</th>
-          <th>Product</th>
-          <th>Destination</th>
-          <th>Container</th>
+          <th class="sortable" data-sort="inv" data-table="process">INV</th>
+          <th class="sortable" data-sort="pic" data-table="process">PIC</th>
+          <th class="sortable" data-sort="buyer" data-table="process">Buyer</th>
+          <th class="sortable" data-sort="product" data-table="process">Product</th>
+          <th class="sortable" data-sort="dest" data-table="process">Destination</th>
+          <th class="sortable" data-sort="container" data-table="process">Container</th>
           <th>Seal</th>
           <th>PEB / Status</th>
-          <th>Vessel</th>
-          <th>ETD</th>
-          <th>ETA</th>
-          <th>To Port</th>
-          <th>Closing</th>
+          <th class="sortable" data-sort="vessel" data-table="process">Vessel</th>
+          <th class="sortable" data-sort="etd" data-table="process">ETD</th>
+          <th class="sortable" data-sort="eta" data-table="process">ETA</th>
+          <th class="sortable" data-sort="toport" data-table="process">To Port</th>
+          <th class="sortable" data-sort="closing" data-table="process">Closing</th>
           <th>Days Left</th>
           <th>Forwarder</th>
           <th>Note</th>
@@ -723,16 +793,16 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>INV</th>
-          <th>Buyer</th>
-          <th>Product</th>
-          <th>Destination</th>
-          <th>Container</th>
+          <th class="sortable" data-sort="inv" data-table="finding">INV</th>
+          <th class="sortable" data-sort="buyer" data-table="finding">Buyer</th>
+          <th class="sortable" data-sort="product" data-table="finding">Product</th>
+          <th class="sortable" data-sort="dest" data-table="finding">Destination</th>
+          <th class="sortable" data-sort="container" data-table="finding">Container</th>
           <th>Seal</th>
-          <th>Closing Date</th>
+          <th class="sortable" data-sort="closing" data-table="finding">Closing Date</th>
           <th>Days Left</th>
-          <th>Est. ETD</th>
-          <th>Est. ETA</th>
+          <th class="sortable" data-sort="etd" data-table="finding">Est. ETD</th>
+          <th class="sortable" data-sort="eta" data-table="finding">Est. ETA</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -781,7 +851,7 @@ function rowsToObjects(rows) {
   // Column mapping — sheet "New":
   // [0]=NO  [1]=BUYER  [2]=PRODUCT  [3]=-  [4]=DEST  [5]=INV
   // [6]=PIC  [7]=-  [8]=-  [9]=CONTAINER  [10]=SEAL  [11]=-
-  // [12]=FWD  [13]=PICKUP  [14]=-  [15]=PEB  [16]=TO PORT  [17]=NOTE
+  // [12]=FWD  [13]=PICKUP  [14]=-  [15]=PEB  [16]=TO_PORT  [17]=NOTE
   // [18]=CLOSING  [19]=VESSEL  [20]=ETD  [21]=ETA
   return rows.slice(1)
     .filter(r => r.some(c => c && c.trim()))
@@ -903,13 +973,117 @@ function daysToClosing(closingStr) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+//  ROW HIGHLIGHT
+// ══════════════════════════════════════════════════════════════════════════
+function getRowHighlight(closingStr) {
+  if (!closingStr || closingStr === '-' || closingStr === '—') return '';
+  const d = parseETD(closingStr);
+  if (!d) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0)  return 'row-overdue';
+  if (diff <= 3) return 'row-urgent';
+  if (diff <= 7) return 'row-warn';
+  return '';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  SORT ENGINE
+// ══════════════════════════════════════════════════════════════════════════
+const _sortState = { sailed: { col: null, dir: 1 }, process: { col: null, dir: 1 }, finding: { col: null, dir: 1 } };
+let _processData = [];
+let _findingData = [];
+
+function sortData(arr, col, dir) {
+  return [...arr].sort((a, b) => {
+    let va = (a[col] || '').toString().toLowerCase().trim();
+    let vb = (b[col] || '').toString().toLowerCase().trim();
+    // Date sort — parse if possible
+    const da = parseETD(va), db = parseETD(vb);
+    if (da && db) return dir * (da - db);
+    if (da && !db) return dir;
+    if (!da && db) return -dir;
+    // Numeric
+    if (!isNaN(va) && !isNaN(vb)) return dir * (parseFloat(va) - parseFloat(vb));
+    // String
+    return dir * va.localeCompare(vb);
+  });
+}
+
+function updateSortHeaders(table, col, dir) {
+  document.querySelectorAll(`thead th[data-table="${table}"]`).forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.sort === col) th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+function handleSort(th) {
+  const table = th.dataset.table;
+  const col   = th.dataset.sort;
+  if (!table || !col) return;
+  const state = _sortState[table];
+  state.dir = (state.col === col) ? -state.dir : 1;
+  state.col = col;
+  updateSortHeaders(table, col, state.dir);
+
+  if (table === 'sailed') {
+    _sailedData = sortData(_sailedData, col, state.dir);
+    renderSailedPage();
+  } else if (table === 'process') {
+    _processData = sortData(_processData, col, state.dir);
+    renderProcess(null, true);
+  } else if (table === 'finding') {
+    _findingData = sortData(_findingData, col, state.dir);
+    renderFinding(null, true);
+  }
+}
+
+// Attach sort listeners after DOM ready
+document.addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (th) handleSort(th);
+});
+
+// ══════════════════════════════════════════════════════════════════════════
 //  RENDER FUNCTIONS
 // ══════════════════════════════════════════════════════════════════════════
+// ── Sailed pagination state ──
+let _sailedData = [];
+let _sailedPage = 1;
+const SAILED_PER_PAGE = 15;
+
+function daysToETA(etaStr) {
+  if (!etaStr || etaStr === '-' || etaStr === '—') return `<span class="dtc-none">—</span>`;
+  const d = parseETD(etaStr);
+  if (!d) return `<span class="dtc-none">—</span>`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0)  return `<span class="dtc dtc-ok">Arrived</span>`;
+  if (diff === 0) return `<span class="dtc dtc-urgent"><span class="pulse-dot"></span>TODAY</span>`;
+  if (diff <= 3)  return `<span class="dtc dtc-urgent"><span class="pulse-dot"></span>${diff}d</span>`;
+  if (diff <= 7)  return `<span class="dtc dtc-warn">${diff}d</span>`;
+  return `<span class="dtc dtc-ok">${diff}d</span>`;
+}
+
 function renderSailed(data) {
-  document.getElementById('body-sailed').innerHTML = (data || []).map(r => `
+  _sailedData = data || [];
+  _sailedPage = 1;
+  renderSailedPage();
+}
+
+function renderSailedPage() {
+  const data = _sailedData;
+  const total = data.length;
+  const totalPages = Math.max(1, Math.ceil(total / SAILED_PER_PAGE));
+  _sailedPage = Math.min(_sailedPage, totalPages);
+  const start = (_sailedPage - 1) * SAILED_PER_PAGE;
+  const end   = Math.min(start + SAILED_PER_PAGE, total);
+  const slice = data.slice(start, end);
+
+  document.getElementById('body-sailed').innerHTML = slice.map((r, i) => `
     <tr data-section="sailed"
         data-search="${[r.inv,r.buyer,r.product,r.dest,r.vessel,r.pic].join(' ').toLowerCase()}">
-      <td class="c-no">${r.no}</td>
+      <td class="c-no">${start + i + 1}</td>
       <td class="c-inv">${val(r.inv)}</td>
       <td>${picChip(r.pic)}</td>
       <td class="c-buyer">${val(r.buyer)}</td>
@@ -918,15 +1092,59 @@ function renderSailed(data) {
       <td class="c-cont">${nullOr(r.container)}</td>
       <td class="c-vessel">${nullOr(r.vessel)}</td>
       <td class="c-date">${nullOr(r.eta)}</td>
+      <td>${daysToETA(r.eta)}</td>
       <td><span class="badge b-sailed">✓ Sailed</span></td>
     </tr>`).join('');
+
+  // Info
+  document.getElementById('pg-sailed-info').innerHTML =
+    `Showing <span>${start + 1}–${end}</span> of <span>${total}</span> shipments`;
+
+  // Buttons
+  const btnsEl = document.getElementById('pg-sailed-btns');
+  let btns = '';
+  btns += `<button class="pg-btn pg-nav" onclick="goSailedPage(${_sailedPage - 1})" ${_sailedPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+  // Smart page range
+  let pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages = [1];
+    if (_sailedPage > 3) pages.push('...');
+    for (let i = Math.max(2, _sailedPage - 1); i <= Math.min(totalPages - 1, _sailedPage + 1); i++) pages.push(i);
+    if (_sailedPage < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+
+  pages.forEach(p => {
+    if (p === '...') { btns += `<span class="pg-sep">···</span>`; }
+    else { btns += `<button class="pg-btn ${p === _sailedPage ? 'active' : ''}" onclick="goSailedPage(${p})">${p}</button>`; }
+  });
+
+  btns += `<button class="pg-btn pg-nav" onclick="goSailedPage(${_sailedPage + 1})" ${_sailedPage === totalPages ? 'disabled' : ''}>›</button>`;
+  btnsEl.innerHTML = btns;
+
+  // Hide pagination if only 1 page
+  document.getElementById('pagination-sailed').style.display = totalPages <= 1 ? 'none' : 'flex';
 }
 
-function renderProcess(data) {
-  document.getElementById('body-process').innerHTML = (data || []).map(r => {
+function goSailedPage(p) {
+  const total = _sailedData.length;
+  const totalPages = Math.max(1, Math.ceil(total / SAILED_PER_PAGE));
+  if (p < 1 || p > totalPages) return;
+  _sailedPage = p;
+  renderSailedPage();
+  document.getElementById('lbl-sailed').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderProcess(data, skipStore) {
+  if (!skipStore) _processData = data || [];
+  document.getElementById('body-process').innerHTML = (_processData || []).map(r => {
     const isAlert = r.note && r.note.startsWith('⚠');
+    const rowCls  = getRowHighlight(r.closing);
     return `
-    <tr data-section="process"
+    <tr data-section="process" class="${rowCls}"
         data-search="${[r.inv,r.buyer,r.product,r.dest,r.vessel,r.fwd,r.pic,r.container,r.seal,r.peb].join(' ').toLowerCase()}">
       <td class="c-no">${r.no}</td>
       <td class="c-inv">${val(r.inv)}</td>
@@ -948,9 +1166,12 @@ function renderProcess(data) {
     </tr>`}).join('');
 }
 
-function renderFinding(data) {
-  document.getElementById('body-finding').innerHTML = (data || []).map(r => `
-    <tr data-section="finding"
+function renderFinding(data, skipStore) {
+  if (!skipStore) _findingData = data || [];
+  document.getElementById('body-finding').innerHTML = (_findingData || []).map(r => {
+    const rowCls = getRowHighlight(r.closing);
+    return `
+    <tr data-section="finding" class="${rowCls}"
         data-search="${[r.inv,r.buyer,r.product,r.dest,r.container,r.seal].join(' ').toLowerCase()}">
       <td class="c-no">${r.no}</td>
       <td class="c-inv">${val(r.inv)}</td>
@@ -964,7 +1185,7 @@ function renderFinding(data) {
       <td class="c-date">${nullOr(r.etd)}</td>
       <td class="c-date">${nullOr(r.eta)}</td>
       <td><span class="badge b-finding"><span class="pulse-dot"></span>Finding</span></td>
-    </tr>`).join('');
+    </tr>`}).join('');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -972,7 +1193,7 @@ function renderFinding(data) {
 // ══════════════════════════════════════════════════════════════════════════
 function showLoading() {
   ['body-sailed','body-process','body-finding'].forEach((id, i) => {
-    const cols = [10, 17, 12][i];
+    const cols = [11, 17, 12][i];
     document.getElementById(id).innerHTML =
       `<tr class="ld-row"><td colspan="${cols}">⟳ LOADING DATA FROM SHEETS...</td></tr>`;
   });
@@ -980,7 +1201,7 @@ function showLoading() {
 
 function showError(msg) {
   ['body-sailed','body-process','body-finding'].forEach((id, i) => {
-    const cols = [10, 17, 12][i];
+    const cols = [11, 17, 12][i];
     document.getElementById(id).innerHTML =
       `<tr class="ld-row"><td colspan="${cols}" style="color:var(--red)">✕ ${msg}</td></tr>`;
   });
@@ -1027,7 +1248,6 @@ async function loadAll() {
 
     // Footer
     if (all.length) {
-      const invNos = all.map(o => o.inv).filter(Boolean);
       document.getElementById('footer-summary').textContent =
         `${all.length} SHIPMENTS · SAILED ${sailedRaw.length} · PROCESS ${processRaw.length} · FINDING ${findingRaw.length}`;
     }
@@ -1056,10 +1276,30 @@ function filterSection(section, btn) {
 
 function applyFilter() {
   const q = document.getElementById('search').value.toLowerCase().trim();
-  const sections = ['sailed','process','finding'];
   let anyVisible = false;
 
-  sections.forEach(sec => {
+  // ── SAILED: filter _sailedData then re-render page 1 ──────────────────
+  const sailedFiltered = q
+    ? _sailedData.filter(r => [r.inv,r.buyer,r.product,r.dest,r.vessel,r.pic,r.container].join(' ').toLowerCase().includes(q))
+    : _sailedData;
+
+  const sailedSectionVisible = (activeSection === 'all' || activeSection === 'sailed') && sailedFiltered.length > 0;
+  document.getElementById('tbl-sailed').style.display   = sailedSectionVisible ? '' : 'none';
+  document.getElementById('lbl-sailed').style.display   = sailedSectionVisible ? '' : 'none';
+  document.getElementById('pagination-sailed').style.display = 'none'; // will be set by renderSailedPage
+
+  if (sailedSectionVisible) {
+    const savedData = _sailedData;
+    _sailedData = sailedFiltered;
+    _sailedPage = 1;
+    renderSailedPage();
+    _sailedData = savedData; // restore full data for next filter call
+    document.getElementById('cnt-sailed').textContent = `${sailedFiltered.length} shipments`;
+    anyVisible = true;
+  }
+
+  // ── PROCESS + FINDING: DOM row hide (no pagination) ───────────────────
+  ['process','finding'].forEach(sec => {
     const tbl   = document.getElementById('tbl-' + sec);
     const label = document.getElementById('lbl-' + sec);
     const rows  = tbl.querySelectorAll('tbody tr:not(.ld-row)');
@@ -1078,9 +1318,7 @@ function applyFilter() {
     label.style.display = hide ? 'none' : '';
 
     const cntEl = document.getElementById('cnt-' + sec);
-    if (cntEl && q && activeSection !== sec && activeSection === 'all') {
-      cntEl.textContent = `${vis} hasil`;
-    }
+    if (cntEl) cntEl.textContent = `${vis} shipments`;
 
     if (!hide) anyVisible = true;
   });
